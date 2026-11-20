@@ -1,15 +1,25 @@
 import { useEffect, useState } from "react";
 import AddMember from "./components/AddMember";
 import SplitExpense from "./components/SplitExpense";
+import {
+  loginUser,
+  registerUser,
+  getCurrentUser,
+  getGroups,
+  createGroup as createGroupApi,
+  getExpenses,
+  createExpense as createExpenseApi,
+  getBalances,
+  saveToken,
+  removeToken,
+  getToken,
+} from "./api/api";
 import "./App.css";
-
-const API_URL = "http://127.0.0.1:8000";
 
 function App() {
   const [isLogin, setIsLogin] = useState(true);
-
   const [isLoggedIn, setIsLoggedIn] = useState(
-    Boolean(localStorage.getItem("token"))
+    Boolean(getToken())
   );
 
   const [user, setUser] = useState(null);
@@ -27,13 +37,13 @@ function App() {
   const [selectedGroup, setSelectedGroup] = useState(null);
   const [showCreateGroup, setShowCreateGroup] = useState(false);
 
-  // Expenses
-  const [expenses, setExpenses] = useState([]);
+  // Old single-user expense form
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
   const [expenseMessage, setExpenseMessage] = useState("");
 
-  // Balances
+  // Expenses + balances
+  const [expenses, setExpenses] = useState([]);
   const [balances, setBalances] = useState([]);
 
   // =====================================================
@@ -43,17 +53,10 @@ function App() {
   useEffect(() => {
     if (!isLoggedIn) return;
 
-    const getUser = async () => {
-      const token = localStorage.getItem("token");
-
+    const loadCurrentUser = async () => {
       try {
-        const response = await fetch(`${API_URL}/auth/me`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        const data = await response.json();
+        const { response, data } =
+          await getCurrentUser();
 
         if (response.ok) {
           setUser(data);
@@ -61,15 +64,18 @@ function App() {
           handleLogout();
         }
       } catch (error) {
-        console.error("User loading error:", error);
+        console.error(
+          "User loading error:",
+          error
+        );
       }
     };
 
-    getUser();
+    loadCurrentUser();
   }, [isLoggedIn]);
 
   // =====================================================
-  // LOAD GROUPS
+  // GROUPS
   // =====================================================
 
   useEffect(() => {
@@ -79,22 +85,18 @@ function App() {
   }, [isLoggedIn]);
 
   const loadGroups = async () => {
-    const token = localStorage.getItem("token");
-
     try {
-      const response = await fetch(`${API_URL}/groups`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      const data = await response.json();
+      const { response, data } =
+        await getGroups();
 
       if (response.ok) {
         setGroups(data);
       }
     } catch (error) {
-      console.error("Group loading error:", error);
+      console.error(
+        "Group loading error:",
+        error
+      );
     }
   };
 
@@ -110,40 +112,28 @@ function App() {
     // LOGIN
     if (isLogin) {
       try {
-        const formData = new URLSearchParams();
-
-        formData.append("username", email);
-        formData.append("password", password);
-
-        const response = await fetch(`${API_URL}/auth/login`, {
-          method: "POST",
-
-          headers: {
-            "Content-Type": "application/x-www-form-urlencoded",
-          },
-
-          body: formData,
-        });
-
-        const data = await response.json();
+        const { response, data } =
+          await loginUser(email, password);
 
         if (response.ok) {
-          localStorage.setItem(
-            "token",
-            data.access_token
-          );
+          saveToken(data.access_token);
 
           setIsLoggedIn(true);
+
           setEmail("");
           setPassword("");
           setMessage("");
         } else {
           setMessage(
-            data.detail || "Invalid email or password."
+            data.detail ||
+              "Invalid email or password."
           );
         }
       } catch (error) {
-        console.error("Login error:", error);
+        console.error(
+          "Login error:",
+          error
+        );
 
         setMessage(
           "Cannot connect to the backend."
@@ -155,24 +145,12 @@ function App() {
 
     // REGISTER
     try {
-      const response = await fetch(
-        `${API_URL}/auth/register`,
-        {
-          method: "POST",
-
-          headers: {
-            "Content-Type": "application/json",
-          },
-
-          body: JSON.stringify({
-            email,
-            name,
-            password,
-          }),
-        }
-      );
-
-      const data = await response.json();
+      const { response, data } =
+        await registerUser(
+          name,
+          email,
+          password
+        );
 
       if (response.ok) {
         setMessage(
@@ -189,11 +167,15 @@ function App() {
         }, 1500);
       } else {
         setMessage(
-          data.detail || "Registration failed."
+          data.detail ||
+            "Registration failed."
         );
       }
     } catch (error) {
-      console.error("Registration error:", error);
+      console.error(
+        "Registration error:",
+        error
+      );
 
       setMessage(
         "Cannot connect to the backend."
@@ -208,26 +190,9 @@ function App() {
   const createGroup = async (e) => {
     e.preventDefault();
 
-    const token = localStorage.getItem("token");
-
     try {
-      const response = await fetch(
-        `${API_URL}/groups`,
-        {
-          method: "POST",
-
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-
-          body: JSON.stringify({
-            name: groupName,
-          }),
-        }
-      );
-
-      const data = await response.json();
+      const { response, data } =
+        await createGroupApi(groupName);
 
       if (response.ok) {
         setGroupName("");
@@ -244,11 +209,15 @@ function App() {
         }, 1200);
       } else {
         setGroupMessage(
-          data.detail || "Could not create group."
+          data.detail ||
+            "Could not create group."
         );
       }
     } catch (error) {
-      console.error("Create group error:", error);
+      console.error(
+        "Create group error:",
+        error
+      );
 
       setGroupMessage(
         "Cannot connect to backend."
@@ -262,6 +231,7 @@ function App() {
 
   const openGroup = async (group) => {
     setSelectedGroup(group);
+
     setExpenseMessage("");
 
     await loadExpenses(group.id);
@@ -269,23 +239,13 @@ function App() {
   };
 
   // =====================================================
-  // LOAD EXPENSES
+  // EXPENSES
   // =====================================================
 
   const loadExpenses = async (groupId) => {
-    const token = localStorage.getItem("token");
-
     try {
-      const response = await fetch(
-        `${API_URL}/groups/${groupId}/expenses`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      const data = await response.json();
+      const { response, data } =
+        await getExpenses(groupId);
 
       if (response.ok) {
         setExpenses(data);
@@ -299,23 +259,13 @@ function App() {
   };
 
   // =====================================================
-  // LOAD BALANCES
+  // BALANCES
   // =====================================================
 
   const loadBalances = async (groupId) => {
-    const token = localStorage.getItem("token");
-
     try {
-      const response = await fetch(
-        `${API_URL}/groups/${groupId}/balances`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      const data = await response.json();
+      const { response, data } =
+        await getBalances(groupId);
 
       if (response.ok) {
         setBalances(data);
@@ -329,14 +279,16 @@ function App() {
   };
 
   // =====================================================
-  // OLD SINGLE-USER EXPENSE
-  // Kept temporarily while testing split expenses
+  // SINGLE-USER EXPENSE
+  // Kept temporarily alongside split expenses
   // =====================================================
 
   const createExpense = async (e) => {
     e.preventDefault();
 
-    if (!user || !selectedGroup) return;
+    if (!user || !selectedGroup) {
+      return;
+    }
 
     const rupees = Number(amount);
 
@@ -352,39 +304,28 @@ function App() {
       return;
     }
 
-    const amountCents = Math.round(
-      rupees * 100
-    );
+    const amountCents =
+      Math.round(rupees * 100);
 
-    const token = localStorage.getItem("token");
+    const expenseData = {
+      description: description.trim(),
+      paid_by: user.id,
+      amount_cents: amountCents,
+
+      splits: [
+        {
+          user_id: user.id,
+          share_cents: amountCents,
+        },
+      ],
+    };
 
     try {
-      const response = await fetch(
-        `${API_URL}/groups/${selectedGroup.id}/expenses`,
-        {
-          method: "POST",
-
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-
-          body: JSON.stringify({
-            description,
-            paid_by: user.id,
-            amount_cents: amountCents,
-
-            splits: [
-              {
-                user_id: user.id,
-                share_cents: amountCents,
-              },
-            ],
-          }),
-        }
-      );
-
-      const data = await response.json();
+      const { response, data } =
+        await createExpenseApi(
+          selectedGroup.id,
+          expenseData
+        );
 
       if (response.ok) {
         setDescription("");
@@ -424,7 +365,7 @@ function App() {
   // =====================================================
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
+    removeToken();
 
     setIsLoggedIn(false);
     setUser(null);
@@ -479,8 +420,6 @@ function App() {
     return (
       <div className="app-background">
 
-        {/* NAVBAR */}
-
         <nav className="app-navbar">
           <div className="nav-inner">
 
@@ -489,9 +428,7 @@ function App() {
                 ₹
               </div>
 
-              <span>
-                Splitly
-              </span>
+              <span>Splitly</span>
             </div>
 
             <div className="nav-user">
@@ -524,16 +461,12 @@ function App() {
 
         <main className="app-content">
 
-          {/* BACK */}
-
           <button
             className="modern-back-btn"
             onClick={() => {
               setSelectedGroup(null);
-
               setExpenses([]);
               setBalances([]);
-
               setExpenseMessage("");
             }}
           >
@@ -567,7 +500,7 @@ function App() {
 
           </section>
 
-          {/* STATS */}
+          {/* GROUP STATS */}
 
           <section className="group-stats">
 
@@ -578,6 +511,7 @@ function App() {
               </div>
 
               <div>
+
                 <span>
                   Total Expenses
                 </span>
@@ -586,6 +520,7 @@ function App() {
                   ₹
                   {(totalExpenses / 100).toFixed(2)}
                 </strong>
+
               </div>
 
             </div>
@@ -597,6 +532,7 @@ function App() {
               </div>
 
               <div>
+
                 <span>
                   Transactions
                 </span>
@@ -604,6 +540,7 @@ function App() {
                 <strong>
                   {expenses.length}
                 </strong>
+
               </div>
 
             </div>
@@ -615,6 +552,7 @@ function App() {
               </div>
 
               <div>
+
                 <span>
                   Your Balance
                 </span>
@@ -629,26 +567,20 @@ function App() {
                     currentBalance / 100
                   ).toFixed(2)}
                 </strong>
+
               </div>
 
             </div>
 
           </section>
 
-          {/* =========================================
-              ADD MEMBER
-          ========================================= */}
+          {/* ADD MEMBER */}
 
           <AddMember
             groupId={selectedGroup.id}
           />
 
-          {/* =========================================
-              SPLIT EXPENSE
-
-              IMPORTANT FIX:
-              Render ONLY when /auth/me has loaded.
-          ========================================= */}
+          {/* SPLIT EXPENSE */}
 
           {user && user.id && (
             <SplitExpense
@@ -666,16 +598,14 @@ function App() {
             />
           )}
 
-          {/* =========================================
-              OLD EXPENSE FORM
-              TEMPORARILY KEPT FOR TESTING
-          ========================================= */}
+          {/* SINGLE-USER EXPENSE */}
 
           <section className="modern-section">
 
             <div className="section-heading">
 
               <div>
+
                 <span className="section-eyebrow">
                   NEW TRANSACTION
                 </span>
@@ -683,6 +613,7 @@ function App() {
                 <h2>
                   Add a personal expense
                 </h2>
+
               </div>
 
             </div>
@@ -759,9 +690,7 @@ function App() {
 
           </section>
 
-          {/* =========================================
-              RECENT EXPENSES
-          ========================================= */}
+          {/* RECENT EXPENSES */}
 
           <section className="modern-section">
 
@@ -794,9 +723,7 @@ function App() {
 
               <div className="modern-empty">
 
-                <div>
-                  ₹
-                </div>
+                <div>₹</div>
 
                 <h3>
                   No expenses yet
@@ -857,9 +784,7 @@ function App() {
 
           </section>
 
-          {/* =========================================
-              BALANCES
-          ========================================= */}
+          {/* BALANCES */}
 
           <section className="modern-section">
 
@@ -935,20 +860,16 @@ function App() {
 
                       </div>
 
-                      <div>
+                      <strong>
 
-                        <strong>
+                        {balanceAmount > 0
+                          ? "+"
+                          : ""}
 
-                          {balanceAmount > 0
-                            ? "+"
-                            : ""}
+                        ₹
+                        {balanceAmount.toFixed(2)}
 
-                          ₹
-                          {balanceAmount.toFixed(2)}
-
-                        </strong>
-
-                      </div>
+                      </strong>
 
                     </div>
                   );
@@ -972,8 +893,6 @@ function App() {
   if (isLoggedIn) {
     return (
       <div className="app-background">
-
-        {/* NAVBAR */}
 
         <nav className="app-navbar">
 
@@ -1084,7 +1003,7 @@ function App() {
 
           </section>
 
-          {/* DASHBOARD STATS */}
+          {/* STATS */}
 
           <section className="dashboard-stats">
 
@@ -1341,7 +1260,7 @@ function App() {
 
       <div className="auth-shell">
 
-        {/* LEFT SIDE */}
+        {/* LEFT */}
 
         <section className="auth-hero">
 
@@ -1456,7 +1375,7 @@ function App() {
 
         </section>
 
-        {/* RIGHT SIDE */}
+        {/* RIGHT */}
 
         <section className="auth-panel">
 

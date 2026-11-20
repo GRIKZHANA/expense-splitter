@@ -1,7 +1,6 @@
 import { useState } from "react";
+import { createExpense } from "../api/api";
 import "./SplitExpense.css";
-
-const API_URL = "http://127.0.0.1:8000";
 
 function SplitExpense({
   groupId,
@@ -14,7 +13,6 @@ function SplitExpense({
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Wait until logged-in user data is available
   if (!currentUser) {
     return (
       <section className="split-card">
@@ -27,7 +25,6 @@ function SplitExpense({
 
   const currentUserId = Number(currentUser.id);
 
-  // Convert "3, 4" → [3, 4]
   const participants = participantIds
     .split(",")
     .map((id) => id.trim())
@@ -53,6 +50,7 @@ function SplitExpense({
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     setMessage("");
 
     if (!description.trim()) {
@@ -69,7 +67,9 @@ function SplitExpense({
     }
 
     if (participants.length === 0) {
-      setMessage("Please enter participant User IDs.");
+      setMessage(
+        "Please enter participant User IDs."
+      );
       return;
     }
 
@@ -84,7 +84,6 @@ function SplitExpense({
       numericAmount * 100
     );
 
-    // Equal split in cents
     const baseShare = Math.floor(
       amountCents / participants.length
     );
@@ -107,36 +106,21 @@ function SplitExpense({
       };
     });
 
-    const token = localStorage.getItem("token");
-
-    if (!token) {
-      setMessage("Please login again.");
-      return;
-    }
+    const expenseData = {
+      description: description.trim(),
+      paid_by: currentUserId,
+      amount_cents: amountCents,
+      splits,
+    };
 
     setLoading(true);
 
     try {
-      const response = await fetch(
-        `${API_URL}/groups/${groupId}/expenses`,
-        {
-          method: "POST",
-
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-
-          body: JSON.stringify({
-            description: description.trim(),
-            paid_by: currentUserId,
-            amount_cents: amountCents,
-            splits,
-          }),
-        }
-      );
-
-      const data = await response.json();
+      const { response, data } =
+        await createExpense(
+          groupId,
+          expenseData
+        );
 
       if (response.ok) {
         setMessage(
@@ -157,7 +141,10 @@ function SplitExpense({
         );
       }
     } catch (error) {
-      console.error("Split expense error:", error);
+      console.error(
+        "Split expense error:",
+        error
+      );
 
       setMessage(
         "Cannot connect to the backend."
@@ -241,15 +228,17 @@ function SplitExpense({
           />
 
           <small>
-            Your User ID is {currentUserId}. Separate
-            multiple IDs using commas.
+            Your User ID is {currentUserId}.
+            Separate multiple IDs using commas.
           </small>
         </div>
 
         {showPreview && (
           <div className="split-preview split-full">
             <div className="split-preview-title">
-              <span>Equal split preview</span>
+              <span>
+                Equal split preview
+              </span>
 
               <strong>
                 Total ₹{numericAmount.toFixed(2)}

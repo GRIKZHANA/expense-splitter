@@ -1,6 +1,5 @@
 import { useState } from "react";
-
-const API_URL = "http://127.0.0.1:8000";
+import { addGroupMember } from "../api/api";
 
 function AddMember({ groupId }) {
   const [userId, setUserId] = useState("");
@@ -15,27 +14,12 @@ function AddMember({ groupId }) {
       return;
     }
 
-    const token = localStorage.getItem("token");
+    setLoading(true);
+    setMessage("");
 
     try {
-      setLoading(true);
-      setMessage("");
-
-      const response = await fetch(
-        `${API_URL}/groups/${groupId}/members`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            user_id: Number(userId),
-          }),
-        }
-      );
-
-      const data = await response.json();
+      const { response, data } =
+        await addGroupMember(groupId, userId);
 
       if (response.ok) {
         setMessage("Member added successfully!");
@@ -60,12 +44,14 @@ function AddMember({ groupId }) {
           <span className="section-eyebrow">
             GROUP MEMBERS
           </span>
+
           <h2>Add a member</h2>
         </div>
       </div>
 
       <p className="muted-text">
-        Add another registered Splitly user using their User ID.
+        Add another registered Splitly user using
+        their User ID.
       </p>
 
       <form
