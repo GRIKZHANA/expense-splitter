@@ -990,3 +990,76 @@ button {
     margin-left: 2px;
   }
 }
+
+/* ADD MEMBER */
+
+.member-form {
+  display: flex;
+  align-items: flex-end;
+  gap: 14px;
+  margin-top: 20px;
+}
+
+.member-input-group {
+  flex: 1;
+}
+
+.member-input-group label {
+  display: block;
+  margin-bottom: 8px;
+  color: #3c4354;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.member-input-group input {
+  width: 100%;
+  height: 48px;
+  padding: 0 14px;
+
+  color: #202638;
+  background: #ffffff;
+
+  border: 1px solid #e1e3e9;
+  border-radius: 11px;
+
+  outline: none;
+  caret-color: #5548dc;
+
+  font-size: 14px;
+}
+
+.member-input-group input::placeholder {
+  color: #a0a5b3;
+}
+
+.member-input-group input:focus {
+  border-color: #7568ed;
+  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.09);
+}
+
+.member-add-btn {
+  height: 48px;
+  padding: 0 22px;
+
+  border: none;
+  border-radius: 11px;
+
+  color: white;
+  background: linear-gradient(135deg, #5145df, #7c3aed);
+
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.member-add-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+@media (max-width: 650px) {
+  .member-form {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
