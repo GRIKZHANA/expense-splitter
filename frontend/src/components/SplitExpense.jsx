@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { createExpense } from "../api/api";
+import StatusMessage from "./StatusMessage";
 import "./SplitExpense.css";
 
 function SplitExpense({
@@ -10,15 +11,18 @@ function SplitExpense({
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
   const [participantIds, setParticipantIds] = useState("");
+
   const [message, setMessage] = useState("");
+  const [messageType, setMessageType] = useState("info");
   const [loading, setLoading] = useState(false);
 
   if (!currentUser) {
     return (
       <section className="split-card">
-        <p className="split-muted">
-          Loading user information...
-        </p>
+        <StatusMessage
+          message="Loading user information..."
+          type="info"
+        />
       </section>
     );
   }
@@ -48,13 +52,20 @@ function SplitExpense({
     ? numericAmount / participants.length
     : 0;
 
+  const showError = (text) => {
+    setMessage(text);
+    setMessageType("error");
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (loading) return;
 
     setMessage("");
 
     if (!description.trim()) {
-      setMessage("Please enter a description.");
+      showError("Please enter a description.");
       return;
     }
 
@@ -62,19 +73,17 @@ function SplitExpense({
       !Number.isFinite(numericAmount) ||
       numericAmount <= 0
     ) {
-      setMessage("Please enter a valid amount.");
+      showError("Please enter a valid amount.");
       return;
     }
 
     if (participants.length === 0) {
-      setMessage(
-        "Please enter participant User IDs."
-      );
+      showError("Please enter participant User IDs.");
       return;
     }
 
     if (!participants.includes(currentUserId)) {
-      setMessage(
+      showError(
         `Include your User ID (${currentUserId}) in the split.`
       );
       return;
@@ -126,6 +135,7 @@ function SplitExpense({
         setMessage(
           "Split expense added successfully!"
         );
+        setMessageType("success");
 
         setDescription("");
         setAmount("");
@@ -135,7 +145,7 @@ function SplitExpense({
           await onExpenseCreated();
         }
       } else {
-        setMessage(
+        showError(
           data.detail ||
             "Could not create split expense."
         );
@@ -146,7 +156,7 @@ function SplitExpense({
         error
       );
 
-      setMessage(
+      showError(
         "Cannot connect to the backend."
       );
     } finally {
@@ -186,9 +196,11 @@ function SplitExpense({
             type="text"
             placeholder="e.g. Dinner"
             value={description}
-            onChange={(e) =>
-              setDescription(e.target.value)
-            }
+            onChange={(e) => {
+              setDescription(e.target.value);
+              setMessage("");
+            }}
+            disabled={loading}
             required
           />
         </div>
@@ -205,9 +217,11 @@ function SplitExpense({
               step="0.01"
               placeholder="800"
               value={amount}
-              onChange={(e) =>
-                setAmount(e.target.value)
-              }
+              onChange={(e) => {
+                setAmount(e.target.value);
+                setMessage("");
+              }}
+              disabled={loading}
               required
             />
           </div>
@@ -220,25 +234,25 @@ function SplitExpense({
             type="text"
             placeholder={`e.g. ${currentUserId}, 4`}
             value={participantIds}
-            onChange={(e) =>
-              setParticipantIds(e.target.value)
-            }
+            onChange={(e) => {
+              setParticipantIds(e.target.value);
+              setMessage("");
+            }}
             autoComplete="off"
+            disabled={loading}
             required
           />
 
           <small>
-            Your User ID is {currentUserId}.
-            Separate multiple IDs using commas.
+            Your User ID is {currentUserId}. Separate
+            multiple IDs using commas.
           </small>
         </div>
 
         {showPreview && (
           <div className="split-preview split-full">
             <div className="split-preview-title">
-              <span>
-                Equal split preview
-              </span>
+              <span>Equal split preview</span>
 
               <strong>
                 Total ₹{numericAmount.toFixed(2)}
@@ -286,11 +300,10 @@ function SplitExpense({
         </button>
       </form>
 
-      {message && (
-        <div className="split-message">
-          {message}
-        </div>
-      )}
+      <StatusMessage
+        message={message}
+        type={messageType}
+      />
     </section>
   );
 }

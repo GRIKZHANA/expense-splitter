@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { addGroupMember } from "../api/api";
+import StatusMessage from "./StatusMessage";
 
 function AddMember({ groupId }) {
   const [userId, setUserId] = useState("");
   const [message, setMessage] = useState("");
+  const [messageType, setMessageType] = useState("info");
   const [loading, setLoading] = useState(false);
 
   const handleAddMember = async (e) => {
@@ -11,6 +13,7 @@ function AddMember({ groupId }) {
 
     if (!userId.trim()) {
       setMessage("Please enter a User ID.");
+      setMessageType("error");
       return;
     }
 
@@ -23,15 +26,19 @@ function AddMember({ groupId }) {
 
       if (response.ok) {
         setMessage("Member added successfully!");
+        setMessageType("success");
         setUserId("");
       } else {
         setMessage(
           data.detail || "Could not add member."
         );
+        setMessageType("error");
       }
     } catch (error) {
       console.error("Add member error:", error);
+
       setMessage("Cannot connect to the backend.");
+      setMessageType("error");
     } finally {
       setLoading(false);
     }
@@ -72,6 +79,7 @@ function AddMember({ groupId }) {
               setUserId(e.target.value)
             }
             autoComplete="off"
+            disabled={loading}
           />
         </div>
 
@@ -81,16 +89,15 @@ function AddMember({ groupId }) {
           disabled={loading}
         >
           {loading
-            ? "Adding..."
+            ? "Adding member..."
             : "Add Member +"}
         </button>
       </form>
 
-      {message && (
-        <div className="success-message">
-          {message}
-        </div>
-      )}
+      <StatusMessage
+        message={message}
+        type={messageType}
+      />
     </section>
   );
 }
