@@ -11,7 +11,7 @@ function App() {
 
   const [user, setUser] = useState(null);
 
-  // Authentication form
+  // Authentication
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -65,7 +65,7 @@ function App() {
   }, [isLoggedIn]);
 
   // =====================================================
-  // LOAD GROUPS
+  // GROUPS
   // =====================================================
 
   useEffect(() => {
@@ -102,7 +102,6 @@ function App() {
     e.preventDefault();
     setMessage("");
 
-    // LOGIN
     if (isLogin) {
       try {
         const formData = new URLSearchParams();
@@ -138,7 +137,6 @@ function App() {
       return;
     }
 
-    // REGISTER
     try {
       const response = await fetch(`${API_URL}/auth/register`, {
         method: "POST",
@@ -227,7 +225,7 @@ function App() {
   };
 
   // =====================================================
-  // LOAD EXPENSES
+  // EXPENSES
   // =====================================================
 
   const loadExpenses = async (groupId) => {
@@ -253,10 +251,6 @@ function App() {
     }
   };
 
-  // =====================================================
-  // LOAD BALANCES
-  // =====================================================
-
   const loadBalances = async (groupId) => {
     const token = localStorage.getItem("token");
 
@@ -280,10 +274,6 @@ function App() {
     }
   };
 
-  // =====================================================
-  // CREATE EXPENSE
-  // =====================================================
-
   const createExpense = async (e) => {
     e.preventDefault();
 
@@ -297,7 +287,6 @@ function App() {
     }
 
     const amountCents = Math.round(rupees * 100);
-
     const token = localStorage.getItem("token");
 
     try {
@@ -312,7 +301,7 @@ function App() {
           },
 
           body: JSON.stringify({
-            description: description,
+            description,
             paid_by: user.id,
             amount_cents: amountCents,
 
@@ -331,7 +320,6 @@ function App() {
       if (response.ok) {
         setDescription("");
         setAmount("");
-
         setExpenseMessage("Expense added successfully!");
 
         await loadExpenses(selectedGroup.id);
@@ -365,7 +353,7 @@ function App() {
   };
 
   // =====================================================
-  // GROUP DETAILS PAGE
+  // GROUP DETAILS
   // =====================================================
 
   if (isLoggedIn && selectedGroup) {
@@ -393,15 +381,10 @@ function App() {
               </p>
             </div>
 
-            <button
-              className="logout-btn"
-              onClick={handleLogout}
-            >
+            <button className="logout-btn" onClick={handleLogout}>
               Logout
             </button>
           </div>
-
-          {/* ADD EXPENSE */}
 
           <div className="dashboard-section">
             <h2>Add Expense</h2>
@@ -410,17 +393,12 @@ function App() {
               Add a new expense to this group.
             </p>
 
-            <form
-              className="expense-form"
-              onSubmit={createExpense}
-            >
+            <form className="expense-form" onSubmit={createExpense}>
               <input
                 type="text"
                 placeholder="Expense description"
                 value={description}
-                onChange={(e) =>
-                  setDescription(e.target.value)
-                }
+                onChange={(e) => setDescription(e.target.value)}
                 required
               />
 
@@ -430,25 +408,17 @@ function App() {
                 min="0.01"
                 step="0.01"
                 value={amount}
-                onChange={(e) =>
-                  setAmount(e.target.value)
-                }
+                onChange={(e) => setAmount(e.target.value)}
                 required
               />
 
-              <button type="submit">
-                Add Expense
-              </button>
+              <button type="submit">Add Expense</button>
             </form>
 
             {expenseMessage && (
-              <p className="group-message">
-                {expenseMessage}
-              </p>
+              <p className="group-message">{expenseMessage}</p>
             )}
           </div>
-
-          {/* EXPENSE HISTORY */}
 
           <div className="dashboard-section">
             <h2>Expenses</h2>
@@ -456,41 +426,25 @@ function App() {
             {expenses.length === 0 ? (
               <div className="empty-groups">
                 <h3>No expenses yet</h3>
-
-                <p>
-                  Add your first expense above.
-                </p>
+                <p>Add your first expense above.</p>
               </div>
             ) : (
               <div className="expense-list">
                 {expenses.map((expense) => (
-                  <div
-                    className="expense-card"
-                    key={expense.id}
-                  >
+                  <div className="expense-card" key={expense.id}>
                     <div>
-                      <h3>
-                        {expense.description}
-                      </h3>
-
-                      <p>
-                        Paid by User #{expense.paid_by}
-                      </p>
+                      <h3>{expense.description}</h3>
+                      <p>Paid by User #{expense.paid_by}</p>
                     </div>
 
                     <strong className="expense-amount">
-                      ₹
-                      {(
-                        expense.amount_cents / 100
-                      ).toFixed(2)}
+                      ₹{(expense.amount_cents / 100).toFixed(2)}
                     </strong>
                   </div>
                 ))}
               </div>
             )}
           </div>
-
-          {/* BALANCES */}
 
           <div className="dashboard-section">
             <h2>Balances</h2>
@@ -502,19 +456,11 @@ function App() {
             ) : (
               <div className="balance-list">
                 {balances.map((balance) => (
-                  <div
-                    className="balance-card"
-                    key={balance.user_id}
-                  >
-                    <span>
-                      User #{balance.user_id}
-                    </span>
+                  <div className="balance-card" key={balance.user_id}>
+                    <span>User #{balance.user_id}</span>
 
                     <strong>
-                      ₹
-                      {(
-                        balance.net_cents / 100
-                      ).toFixed(2)}
+                      ₹{(balance.net_cents / 100).toFixed(2)}
                     </strong>
                   </div>
                 ))}
@@ -539,21 +485,14 @@ function App() {
               <h1>Expense Splitter</h1>
 
               <p className="subtitle dashboard-subtitle">
-                {user
-                  ? `Welcome, ${user.name}!`
-                  : "Loading your account..."}
+                {user ? `Welcome, ${user.name}!` : "Loading your account..."}
               </p>
             </div>
 
-            <button
-              className="logout-btn"
-              onClick={handleLogout}
-            >
+            <button className="logout-btn" onClick={handleLogout}>
               Logout
             </button>
           </div>
-
-          {/* CREATE GROUP */}
 
           <div className="dashboard-section">
             <h2>Create a Group</h2>
@@ -562,48 +501,34 @@ function App() {
               Create a group for friends, roommates or trips.
             </p>
 
-            <form
-              className="group-form"
-              onSubmit={createGroup}
-            >
+            <form className="group-form" onSubmit={createGroup}>
               <input
                 type="text"
                 placeholder="Example: Goa Trip"
                 value={groupName}
-                onChange={(e) =>
-                  setGroupName(e.target.value)
-                }
+                onChange={(e) => setGroupName(e.target.value)}
                 required
               />
 
-              <button type="submit">
-                Create Group
-              </button>
+              <button type="submit">Create Group</button>
             </form>
 
             {groupMessage && (
-              <p className="group-message">
-                {groupMessage}
-              </p>
+              <p className="group-message">{groupMessage}</p>
             )}
           </div>
-
-          {/* GROUPS */}
 
           <div className="dashboard-section">
             <h2>My Groups</h2>
 
             {groups.length === 0 ? (
               <div className="empty-groups">
-                <div className="empty-icon">
-                  ₹
-                </div>
+                <div className="empty-icon">₹</div>
 
                 <h3>No groups yet</h3>
 
                 <p>
-                  Create your first group to start
-                  splitting expenses.
+                  Create your first group to start splitting expenses.
                 </p>
               </div>
             ) : (
@@ -615,20 +540,12 @@ function App() {
                     key={group.id}
                     onClick={() => openGroup(group)}
                   >
-                    <div className="group-icon">
-                      ₹
-                    </div>
+                    <div className="group-icon">₹</div>
 
                     <div>
                       <h3>{group.name}</h3>
-
-                      <p>
-                        Group #{group.id}
-                      </p>
-
-                      <span className="open-text">
-                        Open group →
-                      </span>
+                      <p>Group #{group.id}</p>
+                      <span className="open-text">Open group →</span>
                     </div>
                   </button>
                 ))}
@@ -641,104 +558,190 @@ function App() {
   }
 
   // =====================================================
-  // LOGIN / REGISTER
+  // CREATIVE LOGIN / REGISTER PAGE
   // =====================================================
 
   return (
-    <div className="page">
-      <div className="auth-card">
-        <div className="logo">₹</div>
+    <div className="auth-page">
+      <div className="auth-shell">
 
-        <h1>Expense Splitter</h1>
+        <section className="auth-hero">
+          <div className="brand">
+            <div className="brand-icon">₹</div>
+            <span>Splitly</span>
+          </div>
 
-        <p className="subtitle">
-          Split expenses with friends without the headache.
-        </p>
+          <div className="hero-content">
+            <span className="hero-badge">SMART EXPENSE SHARING</span>
 
-        <div className="tabs">
-          <button
-            type="button"
-            className={isLogin ? "active" : ""}
-            onClick={() => {
-              setIsLogin(true);
-              setMessage("");
-            }}
-          >
-            Login
-          </button>
+            <h1>
+              Split smarter.
+              <br />
+              <span>Live lighter.</span>
+            </h1>
 
-          <button
-            type="button"
-            className={!isLogin ? "active" : ""}
-            onClick={() => {
-              setIsLogin(false);
-              setMessage("");
-            }}
-          >
-            Register
-          </button>
-        </div>
+            <p>
+              Keep trips, dinners and shared bills simple.
+              Track expenses, organize groups and know exactly
+              where your money went.
+            </p>
 
-        <form onSubmit={handleSubmit}>
-          {!isLogin && (
-            <div className="form-group">
-              <label>Name</label>
+            <div className="feature-list">
+              <div className="feature-item">
+                <span className="feature-check">✓</span>
+                <div>
+                  <strong>Simple group expenses</strong>
+                  <small>Create groups for trips, friends and roommates.</small>
+                </div>
+              </div>
 
-              <input
-                type="text"
-                placeholder="Enter your name"
-                value={name}
-                onChange={(e) =>
-                  setName(e.target.value)
-                }
-                required
-              />
+              <div className="feature-item">
+                <span className="feature-check">✓</span>
+                <div>
+                  <strong>Clear expense history</strong>
+                  <small>Keep every shared payment organized.</small>
+                </div>
+              </div>
+
+              <div className="feature-item">
+                <span className="feature-check">✓</span>
+                <div>
+                  <strong>Balance tracking</strong>
+                  <small>See your group balances without messy calculations.</small>
+                </div>
+              </div>
             </div>
-          )}
-
-          <div className="form-group">
-            <label>Email</label>
-
-            <input
-              type="email"
-              placeholder="Enter your email"
-              value={email}
-              onChange={(e) =>
-                setEmail(e.target.value)
-              }
-              required
-            />
           </div>
 
-          <div className="form-group">
-            <label>Password</label>
-
-            <input
-              type="password"
-              placeholder="Enter your password"
-              value={password}
-              onChange={(e) =>
-                setPassword(e.target.value)
-              }
-              required
-            />
-          </div>
-
-          <button
-            className="submit-btn"
-            type="submit"
-          >
-            {isLogin
-              ? "Login"
-              : "Create Account"}
-          </button>
-        </form>
-
-        {message && (
-          <p className="bottom-text">
-            {message}
+          <p className="hero-footer">
+            Built for easier shared spending.
           </p>
-        )}
+        </section>
+
+        <section className="auth-panel">
+          <div className="mobile-brand">
+            <div className="brand-icon">₹</div>
+            <span>Splitly</span>
+          </div>
+
+          <div className="auth-panel-content">
+            <span className="auth-eyebrow">
+              {isLogin ? "WELCOME BACK" : "GET STARTED"}
+            </span>
+
+            <h2>
+              {isLogin ? "Sign in to your account" : "Create your account"}
+            </h2>
+
+            <p className="auth-description">
+              {isLogin
+                ? "Continue managing your shared expenses."
+                : "Start splitting expenses without the awkward maths."}
+            </p>
+
+            <div className="auth-tabs">
+              <button
+                type="button"
+                className={isLogin ? "active" : ""}
+                onClick={() => {
+                  setIsLogin(true);
+                  setMessage("");
+                }}
+              >
+                Sign In
+              </button>
+
+              <button
+                type="button"
+                className={!isLogin ? "active" : ""}
+                onClick={() => {
+                  setIsLogin(false);
+                  setMessage("");
+                }}
+              >
+                Register
+              </button>
+            </div>
+
+            <form className="modern-auth-form" onSubmit={handleSubmit}>
+              {!isLogin && (
+                <div className="modern-form-group">
+                  <label>Full name</label>
+
+                  <div className="input-wrapper">
+                    <span className="input-icon">👤</span>
+
+                    <input
+                      type="text"
+                      placeholder="Enter your name"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      required
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div className="modern-form-group">
+                <label>Email address</label>
+
+                <div className="input-wrapper">
+                  <span className="input-icon">✉</span>
+
+                  <input
+                    type="email"
+                    placeholder="you@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="modern-form-group">
+                <label>Password</label>
+
+                <div className="input-wrapper">
+                  <span className="input-icon">⌑</span>
+
+                  <input
+                    type="password"
+                    placeholder="Enter your password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+
+              <button className="modern-submit-btn" type="submit">
+                {isLogin ? "Sign In" : "Create Account"}
+                <span>→</span>
+              </button>
+            </form>
+
+            {message && (
+              <div className="auth-message">
+                {message}
+              </div>
+            )}
+
+            <p className="auth-switch-text">
+              {isLogin ? "New to Splitly?" : "Already have an account?"}
+
+              <button
+                type="button"
+                onClick={() => {
+                  setIsLogin(!isLogin);
+                  setMessage("");
+                }}
+              >
+                {isLogin ? "Create an account" : "Sign in"}
+              </button>
+            </p>
+          </div>
+        </section>
+
       </div>
     </div>
   );
