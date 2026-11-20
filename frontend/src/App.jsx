@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import AddMember from "./components/AddMember";
+import SplitExpense from "./components/SplitExpense";
 import "./App.css";
 
 const API_URL = "http://127.0.0.1:8000";
 
 function App() {
   const [isLogin, setIsLogin] = useState(true);
+
   const [isLoggedIn, setIsLoggedIn] = useState(
     Boolean(localStorage.getItem("token"))
   );
@@ -67,7 +69,7 @@ function App() {
   }, [isLoggedIn]);
 
   // =====================================================
-  // GROUPS
+  // LOAD GROUPS
   // =====================================================
 
   useEffect(() => {
@@ -102,6 +104,7 @@ function App() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     setMessage("");
 
     // LOGIN
@@ -125,18 +128,26 @@ function App() {
         const data = await response.json();
 
         if (response.ok) {
-          localStorage.setItem("token", data.access_token);
+          localStorage.setItem(
+            "token",
+            data.access_token
+          );
 
           setIsLoggedIn(true);
           setEmail("");
           setPassword("");
           setMessage("");
         } else {
-          setMessage(data.detail || "Invalid email or password.");
+          setMessage(
+            data.detail || "Invalid email or password."
+          );
         }
       } catch (error) {
-        console.error(error);
-        setMessage("Cannot connect to the backend.");
+        console.error("Login error:", error);
+
+        setMessage(
+          "Cannot connect to the backend."
+        );
       }
 
       return;
@@ -144,24 +155,29 @@ function App() {
 
     // REGISTER
     try {
-      const response = await fetch(`${API_URL}/auth/register`, {
-        method: "POST",
+      const response = await fetch(
+        `${API_URL}/auth/register`,
+        {
+          method: "POST",
 
-        headers: {
-          "Content-Type": "application/json",
-        },
+          headers: {
+            "Content-Type": "application/json",
+          },
 
-        body: JSON.stringify({
-          email,
-          name,
-          password,
-        }),
-      });
+          body: JSON.stringify({
+            email,
+            name,
+            password,
+          }),
+        }
+      );
 
       const data = await response.json();
 
       if (response.ok) {
-        setMessage("Account created successfully!");
+        setMessage(
+          "Account created successfully!"
+        );
 
         setName("");
         setEmail("");
@@ -172,11 +188,16 @@ function App() {
           setMessage("");
         }, 1500);
       } else {
-        setMessage(data.detail || "Registration failed.");
+        setMessage(
+          data.detail || "Registration failed."
+        );
       }
     } catch (error) {
-      console.error(error);
-      setMessage("Cannot connect to the backend.");
+      console.error("Registration error:", error);
+
+      setMessage(
+        "Cannot connect to the backend."
+      );
     }
   };
 
@@ -190,24 +211,30 @@ function App() {
     const token = localStorage.getItem("token");
 
     try {
-      const response = await fetch(`${API_URL}/groups`, {
-        method: "POST",
+      const response = await fetch(
+        `${API_URL}/groups`,
+        {
+          method: "POST",
 
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
 
-        body: JSON.stringify({
-          name: groupName,
-        }),
-      });
+          body: JSON.stringify({
+            name: groupName,
+          }),
+        }
+      );
 
       const data = await response.json();
 
       if (response.ok) {
         setGroupName("");
-        setGroupMessage("Group created successfully!");
+
+        setGroupMessage(
+          "Group created successfully!"
+        );
 
         await loadGroups();
 
@@ -216,11 +243,16 @@ function App() {
           setGroupMessage("");
         }, 1200);
       } else {
-        setGroupMessage(data.detail || "Could not create group.");
+        setGroupMessage(
+          data.detail || "Could not create group."
+        );
       }
     } catch (error) {
-      console.error(error);
-      setGroupMessage("Cannot connect to backend.");
+      console.error("Create group error:", error);
+
+      setGroupMessage(
+        "Cannot connect to backend."
+      );
     }
   };
 
@@ -237,7 +269,7 @@ function App() {
   };
 
   // =====================================================
-  // EXPENSES
+  // LOAD EXPENSES
   // =====================================================
 
   const loadExpenses = async (groupId) => {
@@ -259,9 +291,16 @@ function App() {
         setExpenses(data);
       }
     } catch (error) {
-      console.error("Expense loading error:", error);
+      console.error(
+        "Expense loading error:",
+        error
+      );
     }
   };
+
+  // =====================================================
+  // LOAD BALANCES
+  // =====================================================
 
   const loadBalances = async (groupId) => {
     const token = localStorage.getItem("token");
@@ -282,9 +321,17 @@ function App() {
         setBalances(data);
       }
     } catch (error) {
-      console.error("Balance loading error:", error);
+      console.error(
+        "Balance loading error:",
+        error
+      );
     }
   };
+
+  // =====================================================
+  // OLD SINGLE-USER EXPENSE
+  // Kept temporarily while testing split expenses
+  // =====================================================
 
   const createExpense = async (e) => {
     e.preventDefault();
@@ -301,10 +348,14 @@ function App() {
       setExpenseMessage(
         "Enter a valid description and amount."
       );
+
       return;
     }
 
-    const amountCents = Math.round(rupees * 100);
+    const amountCents = Math.round(
+      rupees * 100
+    );
+
     const token = localStorage.getItem("token");
 
     try {
@@ -343,15 +394,25 @@ function App() {
           "Expense added successfully!"
         );
 
-        await loadExpenses(selectedGroup.id);
-        await loadBalances(selectedGroup.id);
+        await loadExpenses(
+          selectedGroup.id
+        );
+
+        await loadBalances(
+          selectedGroup.id
+        );
       } else {
         setExpenseMessage(
-          data.detail || "Could not add expense."
+          data.detail ||
+            "Could not add expense."
         );
       }
     } catch (error) {
-      console.error(error);
+      console.error(
+        "Create expense error:",
+        error
+      );
+
       setExpenseMessage(
         "Cannot connect to backend."
       );
@@ -376,9 +437,13 @@ function App() {
 
     setShowCreateGroup(false);
 
+    setName("");
     setEmail("");
     setPassword("");
+
     setMessage("");
+    setGroupMessage("");
+    setExpenseMessage("");
   };
 
   // =====================================================
@@ -399,6 +464,12 @@ function App() {
         .slice(0, 2)
         .toUpperCase()
     : "U";
+
+  const currentBalance =
+    balances.find(
+      (balance) =>
+        balance.user_id === user?.id
+    )?.net_cents || 0;
 
   // =====================================================
   // GROUP DETAILS
@@ -451,16 +522,18 @@ function App() {
           </div>
         </nav>
 
-        {/* PAGE */}
-
         <main className="app-content">
+
+          {/* BACK */}
 
           <button
             className="modern-back-btn"
             onClick={() => {
               setSelectedGroup(null);
+
               setExpenses([]);
               setBalances([]);
+
               setExpenseMessage("");
             }}
           >
@@ -472,6 +545,7 @@ function App() {
           <section className="group-page-header">
 
             <div>
+
               <span className="page-eyebrow">
                 GROUP OVERVIEW
               </span>
@@ -481,9 +555,10 @@ function App() {
               </h1>
 
               <p>
-                Manage expenses and review the
-                group balance.
+                Manage members, split expenses
+                and review the group balance.
               </p>
+
             </div>
 
             <div className="group-number">
@@ -545,15 +620,13 @@ function App() {
                 </span>
 
                 <strong>
+                  {currentBalance > 0
+                    ? "+"
+                    : ""}
+
                   ₹
                   {(
-                    (
-                      balances.find(
-                        (balance) =>
-                          balance.user_id ===
-                          user?.id
-                      )?.net_cents || 0
-                    ) / 100
+                    currentBalance / 100
                   ).toFixed(2)}
                 </strong>
               </div>
@@ -571,7 +644,31 @@ function App() {
           />
 
           {/* =========================================
-              ADD EXPENSE
+              SPLIT EXPENSE
+
+              IMPORTANT FIX:
+              Render ONLY when /auth/me has loaded.
+          ========================================= */}
+
+          {user && user.id && (
+            <SplitExpense
+              groupId={selectedGroup.id}
+              currentUser={user}
+              onExpenseCreated={async () => {
+                await loadExpenses(
+                  selectedGroup.id
+                );
+
+                await loadBalances(
+                  selectedGroup.id
+                );
+              }}
+            />
+          )}
+
+          {/* =========================================
+              OLD EXPENSE FORM
+              TEMPORARILY KEPT FOR TESTING
           ========================================= */}
 
           <section className="modern-section">
@@ -584,7 +681,7 @@ function App() {
                 </span>
 
                 <h2>
-                  Add an expense
+                  Add a personal expense
                 </h2>
               </div>
 
@@ -603,7 +700,7 @@ function App() {
 
                 <input
                   type="text"
-                  placeholder="e.g. Dinner, hotel, cab..."
+                  placeholder="e.g. Coffee"
                   value={description}
                   onChange={(e) =>
                     setDescription(
@@ -663,7 +760,7 @@ function App() {
           </section>
 
           {/* =========================================
-              EXPENSE HISTORY
+              RECENT EXPENSES
           ========================================= */}
 
           <section className="modern-section">
@@ -671,6 +768,7 @@ function App() {
             <div className="section-heading">
 
               <div>
+
                 <span className="section-eyebrow">
                   ACTIVITY
                 </span>
@@ -678,13 +776,16 @@ function App() {
                 <h2>
                   Recent expenses
                 </h2>
+
               </div>
 
               <span className="transaction-count">
+
                 {expenses.length} transaction
                 {expenses.length !== 1
                   ? "s"
                   : ""}
+
               </span>
 
             </div>
@@ -737,11 +838,13 @@ function App() {
                     </div>
 
                     <strong className="modern-expense-amount">
+
                       ₹
                       {(
                         expense.amount_cents /
                         100
                       ).toFixed(2)}
+
                     </strong>
 
                   </div>
@@ -779,63 +882,77 @@ function App() {
             {balances.length === 0 ? (
 
               <p className="muted-text">
-                No balance information
-                available.
+                No balance information available.
               </p>
 
             ) : (
 
               <div className="modern-balance-list">
 
-                {balances.map((balance) => (
+                {balances.map((balance) => {
 
-                  <div
-                    className="modern-balance-row"
-                    key={balance.user_id}
-                  >
+                  const balanceAmount =
+                    balance.net_cents / 100;
 
-                    <div className="balance-person">
+                  return (
+                    <div
+                      className="modern-balance-row"
+                      key={balance.user_id}
+                    >
 
-                      <div className="small-avatar">
+                      <div className="balance-person">
 
-                        {balance.user_id ===
-                        user?.id
-                          ? userInitials
-                          : "U"}
+                        <div className="small-avatar">
+
+                          {balance.user_id ===
+                          user?.id
+                            ? userInitials
+                            : "U"}
+
+                        </div>
+
+                        <div>
+
+                          <strong>
+
+                            {balance.user_id ===
+                            user?.id
+                              ? user?.name
+                              : `User #${balance.user_id}`}
+
+                          </strong>
+
+                          <span>
+
+                            {balance.user_id ===
+                            user?.id
+                              ? "You"
+                              : `Member #${balance.user_id}`}
+
+                          </span>
+
+                        </div>
 
                       </div>
 
                       <div>
 
                         <strong>
-                          {balance.user_id ===
-                          user?.id
-                            ? user?.name
-                            : `User #${balance.user_id}`}
-                        </strong>
 
-                        <span>
-                          {balance.user_id ===
-                          user?.id
-                            ? "You"
-                            : `Member #${balance.user_id}`}
-                        </span>
+                          {balanceAmount > 0
+                            ? "+"
+                            : ""}
+
+                          ₹
+                          {balanceAmount.toFixed(2)}
+
+                        </strong>
 
                       </div>
 
                     </div>
-
-                    <strong>
-                      ₹
-                      {(
-                        balance.net_cents /
-                        100
-                      ).toFixed(2)}
-                    </strong>
-
-                  </div>
-
-                ))}
+                  );
+                })}
 
               </div>
 
@@ -855,6 +972,8 @@ function App() {
   if (isLoggedIn) {
     return (
       <div className="app-background">
+
+        {/* NAVBAR */}
 
         <nav className="app-navbar">
 
@@ -928,11 +1047,15 @@ function App() {
               </span>
 
               <h1>
+
                 Welcome back,{" "}
+
                 <span>
                   {user?.name || "there"}!
                 </span>{" "}
+
                 👋
+
               </h1>
 
               <p>
@@ -952,14 +1075,16 @@ function App() {
                 setGroupMessage("");
               }}
             >
+
               {showCreateGroup
                 ? "Close"
                 : "+ New Group"}
+
             </button>
 
           </section>
 
-          {/* STATS */}
+          {/* DASHBOARD STATS */}
 
           <section className="dashboard-stats">
 
@@ -1113,10 +1238,12 @@ function App() {
               </div>
 
               <span className="group-count">
+
                 {groups.length} group
                 {groups.length !== 1
                   ? "s"
                   : ""}
+
               </span>
 
             </div>
@@ -1237,12 +1364,14 @@ function App() {
             </span>
 
             <h1>
+
               Split smarter.
               <br />
 
               <span>
                 Live lighter.
               </span>
+
             </h1>
 
             <p>
@@ -1346,21 +1475,27 @@ function App() {
           <div className="auth-panel-content">
 
             <span className="auth-eyebrow">
+
               {isLogin
                 ? "WELCOME BACK"
                 : "GET STARTED"}
+
             </span>
 
             <h2>
+
               {isLogin
                 ? "Sign in to your account"
                 : "Create your account"}
+
             </h2>
 
             <p className="auth-description">
+
               {isLogin
                 ? "Continue managing your shared expenses."
                 : "Start splitting expenses without the awkward maths."}
+
             </p>
 
             <div className="auth-tabs">
@@ -1494,6 +1629,7 @@ function App() {
                 className="modern-submit-btn"
                 type="submit"
               >
+
                 {isLogin
                   ? "Sign In"
                   : "Create Account"}
@@ -1501,14 +1637,17 @@ function App() {
                 <span>
                   →
                 </span>
+
               </button>
 
             </form>
 
             {message && (
+
               <div className="auth-message">
                 {message}
               </div>
+
             )}
 
             <p className="auth-switch-text">
@@ -1524,9 +1663,11 @@ function App() {
                   setMessage("");
                 }}
               >
+
                 {isLogin
                   ? "Create an account"
                   : "Sign in"}
+
               </button>
 
             </p>
