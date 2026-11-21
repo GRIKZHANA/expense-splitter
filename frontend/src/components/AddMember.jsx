@@ -17,27 +17,52 @@ function AddMember({ groupId }) {
       return;
     }
 
+    const numericUserId = Number(userId);
+
+    if (
+      !Number.isInteger(numericUserId) ||
+      numericUserId <= 0
+    ) {
+      setMessage("Please enter a valid User ID.");
+      setMessageType("error");
+      return;
+    }
+
     setLoading(true);
     setMessage("");
 
     try {
       const { response, data } =
-        await addGroupMember(groupId, userId);
+        await addGroupMember(
+          groupId,
+          numericUserId
+        );
 
       if (response.ok) {
-        setMessage("Member added successfully!");
+        setMessage(
+          "Member added successfully!"
+        );
+
         setMessageType("success");
         setUserId("");
       } else {
         setMessage(
-          data.detail || "Could not add member."
+          data.detail ||
+            "Could not add member."
         );
+
         setMessageType("error");
       }
     } catch (error) {
-      console.error("Add member error:", error);
+      console.error(
+        "Add member error:",
+        error
+      );
 
-      setMessage("Cannot connect to the backend.");
+      setMessage(
+        "Cannot connect to the backend."
+      );
+
       setMessageType("error");
     } finally {
       setLoading(false);
@@ -57,8 +82,8 @@ function AddMember({ groupId }) {
       </div>
 
       <p className="muted-text">
-        Add another registered Splitly user using
-        their User ID.
+        Add another registered SplitEase user
+        using their User ID.
       </p>
 
       <form
@@ -72,14 +97,21 @@ function AddMember({ groupId }) {
 
           <input
             id="member-user-id"
-            type="text"
+            type="number"
+            min="1"
+            step="1"
             placeholder="Enter User ID, e.g. 4"
             value={userId}
-            onChange={(e) =>
-              setUserId(e.target.value)
-            }
+            onChange={(e) => {
+              setUserId(e.target.value);
+
+              if (message) {
+                setMessage("");
+              }
+            }}
             autoComplete="off"
             disabled={loading}
+            required
           />
         </div>
 
