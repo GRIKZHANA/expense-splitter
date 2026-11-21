@@ -610,24 +610,31 @@ function App() {
                 </p>
               </div>
 
-              <form
-                className="modern-group-form"
-                onSubmit={createGroup}
-              >
-                <input
-                  type="text"
-                  placeholder="e.g. Manali Trip"
-                  value={groupName}
-                  onChange={(e) =>
-                    setGroupName(e.target.value)
-                  }
-                  required
-                />
+             <form
+  className="modern-group-form"
+  onSubmit={createGroup}
+>
+  <input
+    type="text"
+    name="groupName"
+    placeholder="e.g. Manali Trip"
+    value={groupName}
+    onChange={(e) => setGroupName(e.target.value)}
+    autoComplete="off"
+    style={{
+      color: "#202638",
+      WebkitTextFillColor: "#202638",
+      backgroundColor: "#ffffff",
+      caretColor: "#5145df",
+      opacity: 1,
+    }}
+    required
+  />
 
-                <button type="submit">
-                  Create Group →
-                </button>
-              </form>
+  <button type="submit">
+    Create Group →
+  </button>
+</form>
 
               {groupMessage && (
                 <div className="success-message">
