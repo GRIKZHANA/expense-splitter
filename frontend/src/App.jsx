@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import AddMember from "./components/AddMember";
 import SplitExpense from "./components/SplitExpense";
+
 import {
   loginUser,
   registerUser,
@@ -8,42 +9,54 @@ import {
   getGroups,
   createGroup as createGroupApi,
   getExpenses,
-  createExpense as createExpenseApi,
   getBalances,
   saveToken,
   removeToken,
   getToken,
 } from "./api/api";
+
 import "./App.css";
 import "./responsive.css";
 
 function App() {
+  // =====================================================
+  // AUTHENTICATION STATE
+  // =====================================================
+
   const [isLogin, setIsLogin] = useState(true);
+
   const [isLoggedIn, setIsLoggedIn] = useState(
     Boolean(getToken())
   );
 
   const [user, setUser] = useState(null);
 
-  // Authentication
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
 
-  // Groups
+  // =====================================================
+  // GROUP STATE
+  // =====================================================
+
   const [groups, setGroups] = useState([]);
+
   const [groupName, setGroupName] = useState("");
-  const [groupMessage, setGroupMessage] = useState("");
-  const [selectedGroup, setSelectedGroup] = useState(null);
-  const [showCreateGroup, setShowCreateGroup] = useState(false);
 
-  // Old single-user expense form
-  const [description, setDescription] = useState("");
-  const [amount, setAmount] = useState("");
-  const [expenseMessage, setExpenseMessage] = useState("");
+  const [groupMessage, setGroupMessage] =
+    useState("");
 
-  // Expenses + balances
+  const [selectedGroup, setSelectedGroup] =
+    useState(null);
+
+  const [showCreateGroup, setShowCreateGroup] =
+    useState(false);
+
+  // =====================================================
+  // EXPENSE + BALANCE STATE
+  // =====================================================
+
   const [expenses, setExpenses] = useState([]);
   const [balances, setBalances] = useState([]);
 
@@ -76,7 +89,7 @@ function App() {
   }, [isLoggedIn]);
 
   // =====================================================
-  // GROUPS
+  // LOAD GROUPS AFTER LOGIN
   // =====================================================
 
   useEffect(() => {
@@ -84,6 +97,10 @@ function App() {
       loadGroups();
     }
   }, [isLoggedIn]);
+
+  // =====================================================
+  // LOAD GROUPS
+  // =====================================================
 
   const loadGroups = async () => {
     try {
@@ -110,14 +127,22 @@ function App() {
 
     setMessage("");
 
+    // -----------------------------
     // LOGIN
+    // -----------------------------
+
     if (isLogin) {
       try {
         const { response, data } =
-          await loginUser(email, password);
+          await loginUser(
+            email,
+            password
+          );
 
         if (response.ok) {
-          saveToken(data.access_token);
+          saveToken(
+            data.access_token
+          );
 
           setIsLoggedIn(true);
 
@@ -144,7 +169,10 @@ function App() {
       return;
     }
 
+    // -----------------------------
     // REGISTER
+    // -----------------------------
+
     try {
       const { response, data } =
         await registerUser(
@@ -191,9 +219,15 @@ function App() {
   const createGroup = async (e) => {
     e.preventDefault();
 
+    if (!groupName.trim()) {
+      return;
+    }
+
     try {
       const { response, data } =
-        await createGroupApi(groupName);
+        await createGroupApi(
+          groupName.trim()
+        );
 
       if (response.ok) {
         setGroupName("");
@@ -233,17 +267,22 @@ function App() {
   const openGroup = async (group) => {
     setSelectedGroup(group);
 
-    setExpenseMessage("");
+    setExpenses([]);
+    setBalances([]);
 
-    await loadExpenses(group.id);
-    await loadBalances(group.id);
+    await Promise.all([
+      loadExpenses(group.id),
+      loadBalances(group.id),
+    ]);
   };
 
   // =====================================================
-  // EXPENSES
+  // LOAD EXPENSES
   // =====================================================
 
-  const loadExpenses = async (groupId) => {
+  const loadExpenses = async (
+    groupId
+  ) => {
     try {
       const { response, data } =
         await getExpenses(groupId);
@@ -260,10 +299,12 @@ function App() {
   };
 
   // =====================================================
-  // BALANCES
+  // LOAD BALANCES
   // =====================================================
 
-  const loadBalances = async (groupId) => {
+  const loadBalances = async (
+    groupId
+  ) => {
     try {
       const { response, data } =
         await getBalances(groupId);
@@ -280,85 +321,32 @@ function App() {
   };
 
   // =====================================================
-  // SINGLE-USER EXPENSE
-  // Kept temporarily alongside split expenses
+  // REFRESH GROUP DATA
   // =====================================================
 
-  const createExpense = async (e) => {
-    e.preventDefault();
+  const refreshGroupData =
+    async () => {
+      if (!selectedGroup) return;
 
-    if (!user || !selectedGroup) {
-      return;
-    }
-
-    const rupees = Number(amount);
-
-    if (
-      !description.trim() ||
-      !Number.isFinite(rupees) ||
-      rupees <= 0
-    ) {
-      setExpenseMessage(
-        "Enter a valid description and amount."
-      );
-
-      return;
-    }
-
-    const amountCents =
-      Math.round(rupees * 100);
-
-    const expenseData = {
-      description: description.trim(),
-      paid_by: user.id,
-      amount_cents: amountCents,
-
-      splits: [
-        {
-          user_id: user.id,
-          share_cents: amountCents,
-        },
-      ],
+      await Promise.all([
+        loadExpenses(
+          selectedGroup.id
+        ),
+        loadBalances(
+          selectedGroup.id
+        ),
+      ]);
     };
 
-    try {
-      const { response, data } =
-        await createExpenseApi(
-          selectedGroup.id,
-          expenseData
-        );
+  // =====================================================
+  // BACK TO DASHBOARD
+  // =====================================================
 
-      if (response.ok) {
-        setDescription("");
-        setAmount("");
+  const backToGroups = () => {
+    setSelectedGroup(null);
 
-        setExpenseMessage(
-          "Expense added successfully!"
-        );
-
-        await loadExpenses(
-          selectedGroup.id
-        );
-
-        await loadBalances(
-          selectedGroup.id
-        );
-      } else {
-        setExpenseMessage(
-          data.detail ||
-            "Could not add expense."
-        );
-      }
-    } catch (error) {
-      console.error(
-        "Create expense error:",
-        error
-      );
-
-      setExpenseMessage(
-        "Cannot connect to backend."
-      );
-    }
+    setExpenses([]);
+    setBalances([]);
   };
 
   // =====================================================
@@ -385,51 +373,68 @@ function App() {
 
     setMessage("");
     setGroupMessage("");
-    setExpenseMessage("");
   };
 
   // =====================================================
   // CALCULATED VALUES
   // =====================================================
 
-  const totalExpenses = expenses.reduce(
-    (total, expense) =>
-      total + expense.amount_cents,
-    0
-  );
+  const totalExpenses =
+    expenses.reduce(
+      (total, expense) =>
+        total +
+        expense.amount_cents,
+      0
+    );
 
-  const userInitials = user?.name
-    ? user.name
-        .split(" ")
-        .map((part) => part[0])
-        .join("")
-        .slice(0, 2)
-        .toUpperCase()
-    : "U";
+  const userInitials =
+    user?.name
+      ? user.name
+          .split(" ")
+          .map(
+            (part) => part[0]
+          )
+          .join("")
+          .slice(0, 2)
+          .toUpperCase()
+      : "U";
 
   const currentBalance =
     balances.find(
       (balance) =>
-        balance.user_id === user?.id
+        balance.user_id ===
+        user?.id
     )?.net_cents || 0;
 
   // =====================================================
-  // GROUP DETAILS
+  // GROUP DETAILS PAGE
   // =====================================================
 
-  if (isLoggedIn && selectedGroup) {
+  if (
+    isLoggedIn &&
+    selectedGroup
+  ) {
     return (
       <div className="app-background">
 
+        {/* =========================
+            NAVBAR
+        ========================= */}
+
         <nav className="app-navbar">
+
           <div className="nav-inner">
 
             <div className="nav-brand">
+
               <div className="nav-logo">
                 ₹
               </div>
 
-              <span>Splitly</span>
+              <span>
+                Splitly
+              </span>
+
             </div>
 
             <div className="nav-user">
@@ -439,18 +444,24 @@ function App() {
               </div>
 
               <div className="user-details">
+
                 <strong>
-                  {user?.name || "User"}
+                  {user?.name ||
+                    "User"}
                 </strong>
 
                 <span>
-                  {user?.email || ""}
+                  {user?.email ||
+                    ""}
                 </span>
+
               </div>
 
               <button
                 className="nav-logout"
-                onClick={handleLogout}
+                onClick={
+                  handleLogout
+                }
               >
                 Logout
               </button>
@@ -458,18 +469,20 @@ function App() {
             </div>
 
           </div>
+
         </nav>
+
+        {/* =========================
+            GROUP CONTENT
+        ========================= */}
 
         <main className="app-content">
 
           <button
             className="modern-back-btn"
-            onClick={() => {
-              setSelectedGroup(null);
-              setExpenses([]);
-              setBalances([]);
-              setExpenseMessage("");
-            }}
+            onClick={
+              backToGroups
+            }
           >
             ← Back to groups
           </button>
@@ -485,25 +498,38 @@ function App() {
               </span>
 
               <h1>
-                {selectedGroup.name}
+                {
+                  selectedGroup.name
+                }
               </h1>
 
               <p>
-                Manage members, split expenses
-                and review the group balance.
+                Manage members,
+                split expenses and
+                review the group
+                balance.
               </p>
 
             </div>
 
             <div className="group-number">
-              Group #{selectedGroup.id}
+
+              Group #
+              {
+                selectedGroup.id
+              }
+
             </div>
 
           </section>
 
-          {/* GROUP STATS */}
+          {/* =========================
+              GROUP STATS
+          ========================= */}
 
           <section className="group-stats">
+
+            {/* TOTAL EXPENSES */}
 
             <div className="stat-card">
 
@@ -518,13 +544,20 @@ function App() {
                 </span>
 
                 <strong>
+
                   ₹
-                  {(totalExpenses / 100).toFixed(2)}
+                  {(
+                    totalExpenses /
+                    100
+                  ).toFixed(2)}
+
                 </strong>
 
               </div>
 
             </div>
+
+            {/* TRANSACTIONS */}
 
             <div className="stat-card">
 
@@ -539,12 +572,16 @@ function App() {
                 </span>
 
                 <strong>
-                  {expenses.length}
+                  {
+                    expenses.length
+                  }
                 </strong>
 
               </div>
 
             </div>
+
+            {/* BALANCE */}
 
             <div className="stat-card">
 
@@ -559,14 +596,18 @@ function App() {
                 </span>
 
                 <strong>
-                  {currentBalance > 0
+
+                  {currentBalance >
+                  0
                     ? "+"
                     : ""}
 
                   ₹
                   {(
-                    currentBalance / 100
+                    currentBalance /
+                    100
                   ).toFixed(2)}
+
                 </strong>
 
               </div>
@@ -575,123 +616,40 @@ function App() {
 
           </section>
 
-          {/* ADD MEMBER */}
+          {/* =========================
+              ADD MEMBER
+          ========================= */}
 
           <AddMember
-            groupId={selectedGroup.id}
+            groupId={
+              selectedGroup.id
+            }
           />
 
-          {/* SPLIT EXPENSE */}
+          {/* =========================
+              SPLIT EXPENSE
+
+              This is now the ONLY
+              expense creation form.
+          ========================= */}
 
           {user && user.id && (
             <SplitExpense
-              groupId={selectedGroup.id}
-              currentUser={user}
-              onExpenseCreated={async () => {
-                await loadExpenses(
-                  selectedGroup.id
-                );
-
-                await loadBalances(
-                  selectedGroup.id
-                );
-              }}
+              groupId={
+                selectedGroup.id
+              }
+              currentUser={
+                user
+              }
+              onExpenseCreated={
+                refreshGroupData
+              }
             />
           )}
 
-          {/* SINGLE-USER EXPENSE */}
-
-          <section className="modern-section">
-
-            <div className="section-heading">
-
-              <div>
-
-                <span className="section-eyebrow">
-                  NEW TRANSACTION
-                </span>
-
-                <h2>
-                  Add a personal expense
-                </h2>
-
-              </div>
-
-            </div>
-
-            <form
-              className="modern-expense-form"
-              onSubmit={createExpense}
-            >
-
-              <div className="field">
-
-                <label>
-                  Description
-                </label>
-
-                <input
-                  type="text"
-                  placeholder="e.g. Coffee"
-                  value={description}
-                  onChange={(e) =>
-                    setDescription(
-                      e.target.value
-                    )
-                  }
-                  required
-                />
-
-              </div>
-
-              <div className="field">
-
-                <label>
-                  Amount
-                </label>
-
-                <div className="money-input">
-
-                  <span>
-                    ₹
-                  </span>
-
-                  <input
-                    type="number"
-                    placeholder="0.00"
-                    min="0.01"
-                    step="0.01"
-                    value={amount}
-                    onChange={(e) =>
-                      setAmount(
-                        e.target.value
-                      )
-                    }
-                    required
-                  />
-
-                </div>
-
-              </div>
-
-              <button
-                className="primary-action"
-                type="submit"
-              >
-                Add Expense +
-              </button>
-
-            </form>
-
-            {expenseMessage && (
-              <div className="success-message">
-                {expenseMessage}
-              </div>
-            )}
-
-          </section>
-
-          {/* RECENT EXPENSES */}
+          {/* =========================
+              RECENT EXPENSES
+          ========================= */}
 
           <section className="modern-section">
 
@@ -711,8 +669,12 @@ function App() {
 
               <span className="transaction-count">
 
-                {expenses.length} transaction
-                {expenses.length !== 1
+                {
+                  expenses.length
+                }{" "}
+                transaction
+                {expenses.length !==
+                1
                   ? "s"
                   : ""}
 
@@ -720,18 +682,22 @@ function App() {
 
             </div>
 
-            {expenses.length === 0 ? (
+            {expenses.length ===
+            0 ? (
 
               <div className="modern-empty">
 
-                <div>₹</div>
+                <div>
+                  ₹
+                </div>
 
                 <h3>
                   No expenses yet
                 </h3>
 
                 <p>
-                  Add your first expense to
+                  Add your first
+                  shared expense to
                   this group.
                 </p>
 
@@ -741,43 +707,56 @@ function App() {
 
               <div className="modern-expense-list">
 
-                {expenses.map((expense) => (
+                {expenses.map(
+                  (expense) => (
 
-                  <div
-                    className="modern-expense-row"
-                    key={expense.id}
-                  >
+                    <div
+                      className="modern-expense-row"
+                      key={
+                        expense.id
+                      }
+                    >
 
-                    <div className="expense-symbol">
-                      ₹
-                    </div>
+                      <div className="expense-symbol">
+                        ₹
+                      </div>
 
-                    <div className="expense-info">
+                      <div className="expense-info">
 
-                      <strong>
-                        {expense.description}
+                        <strong>
+                          {
+                            expense.description
+                          }
+                        </strong>
+
+                        <span>
+
+                          Paid by User #
+
+                          {
+                            expense.paid_by
+                          }
+
+                        </span>
+
+                      </div>
+
+                      <strong className="modern-expense-amount">
+
+                        ₹
+                        {(
+                          expense.amount_cents /
+                          100
+                        ).toFixed(
+                          2
+                        )}
+
                       </strong>
 
-                      <span>
-                        Paid by User #
-                        {expense.paid_by}
-                      </span>
-
                     </div>
 
-                    <strong className="modern-expense-amount">
-
-                      ₹
-                      {(
-                        expense.amount_cents /
-                        100
-                      ).toFixed(2)}
-
-                    </strong>
-
-                  </div>
-
-                ))}
+                  )
+                )}
 
               </div>
 
@@ -785,7 +764,9 @@ function App() {
 
           </section>
 
-          {/* BALANCES */}
+          {/* =========================
+              BALANCES
+          ========================= */}
 
           <section className="modern-section">
 
@@ -805,76 +786,90 @@ function App() {
 
             </div>
 
-            {balances.length === 0 ? (
+            {balances.length ===
+            0 ? (
 
               <p className="muted-text">
-                No balance information available.
+
+                No balance
+                information
+                available.
+
               </p>
 
             ) : (
 
               <div className="modern-balance-list">
 
-                {balances.map((balance) => {
+                {balances.map(
+                  (balance) => {
 
-                  const balanceAmount =
-                    balance.net_cents / 100;
+                    const
+                      balanceAmount =
+                        balance.net_cents /
+                        100;
 
-                  return (
-                    <div
-                      className="modern-balance-row"
-                      key={balance.user_id}
-                    >
+                    return (
+                      <div
+                        className="modern-balance-row"
+                        key={
+                          balance.user_id
+                        }
+                      >
 
-                      <div className="balance-person">
+                        <div className="balance-person">
 
-                        <div className="small-avatar">
-
-                          {balance.user_id ===
-                          user?.id
-                            ? userInitials
-                            : "U"}
-
-                        </div>
-
-                        <div>
-
-                          <strong>
+                          <div className="small-avatar">
 
                             {balance.user_id ===
                             user?.id
-                              ? user?.name
-                              : `User #${balance.user_id}`}
+                              ? userInitials
+                              : "U"}
 
-                          </strong>
+                          </div>
 
-                          <span>
+                          <div>
 
-                            {balance.user_id ===
-                            user?.id
-                              ? "You"
-                              : `Member #${balance.user_id}`}
+                            <strong>
 
-                          </span>
+                              {balance.user_id ===
+                              user?.id
+                                ? user?.name
+                                : `User #${balance.user_id}`}
+
+                            </strong>
+
+                            <span>
+
+                              {balance.user_id ===
+                              user?.id
+                                ? "You"
+                                : `Member #${balance.user_id}`}
+
+                            </span>
+
+                          </div>
 
                         </div>
+
+                        <strong>
+
+                          {balanceAmount >
+                          0
+                            ? "+"
+                            : ""}
+
+                          ₹
+                          {balanceAmount.toFixed(
+                            2
+                          )}
+
+                        </strong>
 
                       </div>
-
-                      <strong>
-
-                        {balanceAmount > 0
-                          ? "+"
-                          : ""}
-
-                        ₹
-                        {balanceAmount.toFixed(2)}
-
-                      </strong>
-
-                    </div>
-                  );
-                })}
+                    );
+                  }
+                )}
 
               </div>
 
@@ -883,6 +878,7 @@ function App() {
           </section>
 
         </main>
+
       </div>
     );
   }
@@ -894,6 +890,8 @@ function App() {
   if (isLoggedIn) {
     return (
       <div className="app-background">
+
+        {/* NAVBAR */}
 
         <nav className="app-navbar">
 
@@ -932,18 +930,22 @@ function App() {
               <div className="user-details">
 
                 <strong>
-                  {user?.name || "User"}
+                  {user?.name ||
+                    "User"}
                 </strong>
 
                 <span>
-                  {user?.email || ""}
+                  {user?.email ||
+                    ""}
                 </span>
 
               </div>
 
               <button
                 className="nav-logout"
-                onClick={handleLogout}
+                onClick={
+                  handleLogout
+                }
               >
                 Logout
               </button>
@@ -953,6 +955,8 @@ function App() {
           </div>
 
         </nav>
+
+        {/* DASHBOARD CONTENT */}
 
         <main className="app-content">
 
@@ -971,7 +975,9 @@ function App() {
                 Welcome back,{" "}
 
                 <span>
-                  {user?.name || "there"}!
+                  {user?.name ||
+                    "there"}
+                  !
                 </span>{" "}
 
                 👋
@@ -979,8 +985,9 @@ function App() {
               </h1>
 
               <p>
-                Here's an overview of your
-                shared expenses and groups.
+                Here's an overview
+                of your shared
+                expenses and groups.
               </p>
 
             </div>
@@ -988,11 +995,15 @@ function App() {
             <button
               className="primary-action create-group-top"
               onClick={() => {
+
                 setShowCreateGroup(
                   !showCreateGroup
                 );
 
-                setGroupMessage("");
+                setGroupMessage(
+                  ""
+                );
+
               }}
             >
 
@@ -1004,7 +1015,9 @@ function App() {
 
           </section>
 
-          {/* STATS */}
+          {/* =========================
+              DASHBOARD STATS
+          ========================= */}
 
           <section className="dashboard-stats">
 
@@ -1021,11 +1034,14 @@ function App() {
                 </span>
 
                 <strong>
-                  {groups.length}
+                  {
+                    groups.length
+                  }
                 </strong>
 
                 <small>
-                  Active expense groups
+                  Active expense
+                  groups
                 </small>
 
               </div>
@@ -1049,7 +1065,8 @@ function App() {
                 </strong>
 
                 <small>
-                  Connected to FastAPI
+                  Connected to
+                  FastAPI
                 </small>
 
               </div>
@@ -1082,7 +1099,9 @@ function App() {
 
           </section>
 
-          {/* CREATE GROUP */}
+          {/* =========================
+              CREATE GROUP
+          ========================= */}
 
           {showCreateGroup && (
 
@@ -1095,26 +1114,33 @@ function App() {
                 </span>
 
                 <h2>
-                  Start a new expense group
+                  Start a new
+                  expense group
                 </h2>
 
                 <p>
-                  Create a group for a trip,
-                  flat, event or anything
-                  you're sharing with friends.
+                  Create a group for
+                  a trip, flat, event
+                  or anything you're
+                  sharing with
+                  friends.
                 </p>
 
               </div>
 
               <form
                 className="modern-group-form"
-                onSubmit={createGroup}
+                onSubmit={
+                  createGroup
+                }
               >
 
                 <input
                   type="text"
                   placeholder="e.g. Manali Trip"
-                  value={groupName}
+                  value={
+                    groupName
+                  }
                   onChange={(e) =>
                     setGroupName(
                       e.target.value
@@ -1130,16 +1156,22 @@ function App() {
               </form>
 
               {groupMessage && (
+
                 <div className="success-message">
-                  {groupMessage}
+                  {
+                    groupMessage
+                  }
                 </div>
+
               )}
 
             </section>
 
           )}
 
-          {/* GROUPS */}
+          {/* =========================
+              GROUPS
+          ========================= */}
 
           <section className="groups-section">
 
@@ -1159,8 +1191,12 @@ function App() {
 
               <span className="group-count">
 
-                {groups.length} group
-                {groups.length !== 1
+                {
+                  groups.length
+                }{" "}
+                group
+                {groups.length !==
+                1
                   ? "s"
                   : ""}
 
@@ -1168,7 +1204,8 @@ function App() {
 
             </div>
 
-            {groups.length === 0 ? (
+            {groups.length ===
+            0 ? (
 
               <div className="modern-empty">
 
@@ -1181,8 +1218,9 @@ function App() {
                 </h3>
 
                 <p>
-                  Create your first group
-                  to start splitting expenses.
+                  Create your first
+                  group to start
+                  splitting expenses.
                 </p>
 
               </div>
@@ -1192,22 +1230,32 @@ function App() {
               <div className="modern-groups-grid">
 
                 {groups.map(
-                  (group, index) => (
+                  (
+                    group,
+                    index
+                  ) => (
 
                     <button
                       type="button"
                       className="modern-group-card"
-                      key={group.id}
+                      key={
+                        group.id
+                      }
                       onClick={() =>
-                        openGroup(group)
+                        openGroup(
+                          group
+                        )
                       }
                     >
 
                       <div
                         className={`group-card-icon ${
-                          index % 3 === 0
+                          index % 3 ===
+                          0
                             ? "purple"
-                            : index % 3 === 1
+                            : index %
+                                3 ===
+                              1
                             ? "blue"
                             : "green"
                         }`}
@@ -1218,16 +1266,24 @@ function App() {
                       <div className="group-card-content">
 
                         <span>
-                          GROUP #{group.id}
+
+                          GROUP #
+                          {
+                            group.id
+                          }
+
                         </span>
 
                         <h3>
-                          {group.name}
+                          {
+                            group.name
+                          }
                         </h3>
 
                         <p>
-                          Track and manage
-                          shared expenses.
+                          Track and
+                          manage shared
+                          expenses.
                         </p>
 
                       </div>
@@ -1248,6 +1304,7 @@ function App() {
           </section>
 
         </main>
+
       </div>
     );
   }
@@ -1261,7 +1318,7 @@ function App() {
 
       <div className="auth-shell">
 
-        {/* LEFT */}
+        {/* LEFT SIDE */}
 
         <section className="auth-hero">
 
@@ -1280,12 +1337,14 @@ function App() {
           <div className="hero-content">
 
             <span className="hero-badge">
-              SMART EXPENSE SHARING
+              SMART EXPENSE
+              SHARING
             </span>
 
             <h1>
 
               Split smarter.
+
               <br />
 
               <span>
@@ -1295,10 +1354,13 @@ function App() {
             </h1>
 
             <p>
-              Keep trips, dinners and shared
-              bills simple. Track expenses,
-              organize groups and know exactly
-              where your money went.
+              Keep trips, dinners
+              and shared bills
+              simple. Track
+              expenses, organize
+              groups and know
+              exactly where your
+              money went.
             </p>
 
             <div className="feature-list">
@@ -1312,12 +1374,15 @@ function App() {
                 <div>
 
                   <strong>
-                    Simple group expenses
+                    Simple group
+                    expenses
                   </strong>
 
                   <small>
-                    Create groups for trips,
-                    friends and roommates.
+                    Create groups
+                    for trips,
+                    friends and
+                    roommates.
                   </small>
 
                 </div>
@@ -1333,11 +1398,13 @@ function App() {
                 <div>
 
                   <strong>
-                    Clear expense history
+                    Clear expense
+                    history
                   </strong>
 
                   <small>
-                    Keep every shared payment
+                    Keep every
+                    shared payment
                     organized.
                   </small>
 
@@ -1358,8 +1425,10 @@ function App() {
                   </strong>
 
                   <small>
-                    See your group balances
-                    without messy calculations.
+                    See your group
+                    balances without
+                    messy
+                    calculations.
                   </small>
 
                 </div>
@@ -1371,12 +1440,13 @@ function App() {
           </div>
 
           <p className="hero-footer">
-            Built for easier shared spending.
+            Built for easier
+            shared spending.
           </p>
 
         </section>
 
-        {/* RIGHT */}
+        {/* RIGHT SIDE */}
 
         <section className="auth-panel">
 
@@ -1418,6 +1488,8 @@ function App() {
 
             </p>
 
+            {/* AUTH TABS */}
+
             <div className="auth-tabs">
 
               <button
@@ -1428,8 +1500,15 @@ function App() {
                     : ""
                 }
                 onClick={() => {
-                  setIsLogin(true);
-                  setMessage("");
+
+                  setIsLogin(
+                    true
+                  );
+
+                  setMessage(
+                    ""
+                  );
+
                 }}
               >
                 Sign In
@@ -1443,8 +1522,15 @@ function App() {
                     : ""
                 }
                 onClick={() => {
-                  setIsLogin(false);
-                  setMessage("");
+
+                  setIsLogin(
+                    false
+                  );
+
+                  setMessage(
+                    ""
+                  );
+
                 }}
               >
                 Register
@@ -1452,9 +1538,13 @@ function App() {
 
             </div>
 
+            {/* AUTH FORM */}
+
             <form
               className="modern-auth-form"
-              onSubmit={handleSubmit}
+              onSubmit={
+                handleSubmit
+              }
             >
 
               {!isLogin && (
@@ -1474,10 +1564,13 @@ function App() {
                     <input
                       type="text"
                       placeholder="Enter your name"
-                      value={name}
+                      value={
+                        name
+                      }
                       onChange={(e) =>
                         setName(
-                          e.target.value
+                          e.target
+                            .value
                         )
                       }
                       required
@@ -1504,10 +1597,13 @@ function App() {
                   <input
                     type="email"
                     placeholder="you@example.com"
-                    value={email}
+                    value={
+                      email
+                    }
                     onChange={(e) =>
                       setEmail(
-                        e.target.value
+                        e.target
+                          .value
                       )
                     }
                     required
@@ -1532,10 +1628,13 @@ function App() {
                   <input
                     type="password"
                     placeholder="Enter your password"
-                    value={password}
+                    value={
+                      password
+                    }
                     onChange={(e) =>
                       setPassword(
-                        e.target.value
+                        e.target
+                          .value
                       )
                     }
                     required
@@ -1562,6 +1661,8 @@ function App() {
 
             </form>
 
+            {/* AUTH MESSAGE */}
+
             {message && (
 
               <div className="auth-message">
@@ -1579,8 +1680,15 @@ function App() {
               <button
                 type="button"
                 onClick={() => {
-                  setIsLogin(!isLogin);
-                  setMessage("");
+
+                  setIsLogin(
+                    !isLogin
+                  );
+
+                  setMessage(
+                    ""
+                  );
+
                 }}
               >
 
