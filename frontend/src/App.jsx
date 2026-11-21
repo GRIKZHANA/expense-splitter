@@ -15,6 +15,7 @@ import {
   getToken,
 } from "./api/api";
 import "./App.css";
+import "./responsive.css";
 
 function App() {
   const [isLogin, setIsLogin] = useState(true);
