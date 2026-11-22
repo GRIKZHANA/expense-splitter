@@ -1,5 +1,8 @@
-import { useState } from "react";
-import { createExpense } from "../api/api";
+import { useEffect, useState } from "react";
+import {
+  createExpense,
+  getGroupMembers,
+} from "../api/api";
 import StatusMessage from "./StatusMessage";
 import "./SplitExpense.css";
 
@@ -10,11 +13,95 @@ function SplitExpense({
 }) {
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
-  const [participantIds, setParticipantIds] = useState("");
+
+  // User types visible group member numbers:
+  // e.g. 1,2,3
+  const [participantNumbers, setParticipantNumbers] =
+    useState("");
+
+  const [groupMembers, setGroupMembers] = useState([]);
+  const [membersLoading, setMembersLoading] =
+    useState(true);
 
   const [message, setMessage] = useState("");
-  const [messageType, setMessageType] = useState("info");
+  const [messageType, setMessageType] =
+    useState("info");
+
   const [loading, setLoading] = useState(false);
+
+  // Used to reload members after Add Member
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  // =====================================================
+  // LOAD GROUP MEMBERS
+  // =====================================================
+
+  const loadMembers = async () => {
+    if (!groupId) return;
+
+    setMembersLoading(true);
+
+    try {
+      const { response, data } =
+        await getGroupMembers(groupId);
+
+      if (response.ok && Array.isArray(data)) {
+        setGroupMembers(data);
+      } else {
+        setGroupMembers([]);
+
+        setMessage(
+          data?.detail ||
+            "Could not load group members."
+        );
+
+        setMessageType("error");
+      }
+    } catch (error) {
+      console.error(
+        "Group members loading error:",
+        error
+      );
+
+      setGroupMembers([]);
+
+      setMessage(
+        "Cannot load group members."
+      );
+
+      setMessageType("error");
+    } finally {
+      setMembersLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadMembers();
+  }, [groupId, refreshKey]);
+
+  // Allow another component/event to refresh
+  // this list if needed.
+  useEffect(() => {
+    const handleMemberAdded = () => {
+      setRefreshKey((value) => value + 1);
+    };
+
+    window.addEventListener(
+      "splitease-member-added",
+      handleMemberAdded
+    );
+
+    return () => {
+      window.removeEventListener(
+        "splitease-member-added",
+        handleMemberAdded
+      );
+    };
+  }, []);
+
+  // =====================================================
+  // CURRENT USER
+  // =====================================================
 
   if (!currentUser) {
     return (
@@ -27,35 +114,75 @@ function SplitExpense({
     );
   }
 
-  const currentUserId = Number(currentUser.id);
+  // Owner is the member whose is_owner is true.
+  const ownerMember = groupMembers.find(
+    (member) => member.is_owner
+  );
 
-  const participants = participantIds
+  // =====================================================
+  // PARSE VISIBLE MEMBER NUMBERS
+  // =====================================================
+
+  const selectedNumbers = participantNumbers
     .split(",")
-    .map((id) => id.trim())
-    .filter((id) => id !== "")
-    .map((id) => Number(id))
+    .map((value) => value.trim())
+    .filter((value) => value !== "")
+    .map((value) => Number(value))
     .filter(
-      (id, index, array) =>
-        Number.isInteger(id) &&
-        id > 0 &&
-        array.indexOf(id) === index
+      (value, index, array) =>
+        Number.isInteger(value) &&
+        value > 0 &&
+        array.indexOf(value) === index
     );
+
+  // Convert:
+  // 1,2,3
+  //
+  // into the actual GroupMember objects.
+  const selectedMembers = selectedNumbers
+    .map((memberNumber) =>
+      groupMembers.find(
+        (member) =>
+          Number(member.member_number) ===
+          memberNumber
+      )
+    )
+    .filter(Boolean);
+
+  // Numbers entered that don't exist.
+  const invalidNumbers = selectedNumbers.filter(
+    (memberNumber) =>
+      !groupMembers.some(
+        (member) =>
+          Number(member.member_number) ===
+          memberNumber
+      )
+  );
 
   const numericAmount = Number(amount);
 
   const showPreview =
-    participants.length > 0 &&
+    selectedMembers.length > 0 &&
+    invalidNumbers.length === 0 &&
     Number.isFinite(numericAmount) &&
     numericAmount > 0;
 
   const previewShare = showPreview
-    ? numericAmount / participants.length
+    ? numericAmount / selectedMembers.length
     : 0;
+
+  // =====================================================
+  // ERROR
+  // =====================================================
 
   const showError = (text) => {
     setMessage(text);
     setMessageType("error");
   };
+
+  // =====================================================
+  // SUBMIT EXPENSE
+  // =====================================================
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -65,7 +192,9 @@ function SplitExpense({
     setMessage("");
 
     if (!description.trim()) {
-      showError("Please enter a description.");
+      showError(
+        "Please enter a description."
+      );
       return;
     }
 
@@ -73,54 +202,103 @@ function SplitExpense({
       !Number.isFinite(numericAmount) ||
       numericAmount <= 0
     ) {
-      showError("Please enter a valid amount.");
-      return;
-    }
-
-    if (participants.length === 0) {
-      showError("Please enter participant User IDs.");
-      return;
-    }
-
-    if (!participants.includes(currentUserId)) {
       showError(
-        `Include your User ID (${currentUserId}) in the split.`
+        "Please enter a valid amount."
       );
       return;
     }
+
+    if (selectedNumbers.length === 0) {
+      showError(
+        "Please enter the member numbers to split between."
+      );
+      return;
+    }
+
+    if (invalidNumbers.length > 0) {
+      showError(
+        `Member number ${invalidNumbers.join(
+          ", "
+        )} does not exist in this group.`
+      );
+      return;
+    }
+
+    if (!ownerMember) {
+      showError(
+        "Could not identify the group owner."
+      );
+      return;
+    }
+
+    // Keep the same behavior as before:
+    // the logged-in owner is paying the expense.
+    //
+    // They must also be part of the split.
+    const ownerIncluded = selectedMembers.some(
+      (member) =>
+        Number(member.id) ===
+        Number(ownerMember.id)
+    );
+
+    if (!ownerIncluded) {
+      showError(
+        `Include your member number (${ownerMember.member_number}) in the split.`
+      );
+      return;
+    }
+
+    // ===================================================
+    // CALCULATE SHARES IN PAISE
+    // ===================================================
 
     const amountCents = Math.round(
       numericAmount * 100
     );
 
     const baseShare = Math.floor(
-      amountCents / participants.length
+      amountCents / selectedMembers.length
     );
 
     let remainder =
       amountCents -
-      baseShare * participants.length;
+      baseShare * selectedMembers.length;
 
-    const splits = participants.map((userId) => {
-      let share = baseShare;
+    const splits = selectedMembers.map(
+      (member) => {
+        let share = baseShare;
 
-      if (remainder > 0) {
-        share += 1;
-        remainder -= 1;
+        if (remainder > 0) {
+          share += 1;
+          remainder -= 1;
+        }
+
+        return {
+          // IMPORTANT:
+          // Actual GroupMember database ID.
+          member_id: Number(member.id),
+
+          share_cents: share,
+        };
       }
-
-      return {
-        user_id: userId,
-        share_cents: share,
-      };
-    });
+    );
 
     const expenseData = {
       description: description.trim(),
-      paid_by: currentUserId,
+
+      // Logged-in owner is the payer.
+      paid_by_member_id: Number(
+        ownerMember.id
+      ),
+
       amount_cents: amountCents,
+
       splits,
     };
+
+    // ===================================================
+    // SEND TO BACKEND
+    // ===================================================
 
     setLoading(true);
 
@@ -135,11 +313,12 @@ function SplitExpense({
         setMessage(
           "Split expense added successfully!"
         );
+
         setMessageType("success");
 
         setDescription("");
         setAmount("");
-        setParticipantIds("");
+        setParticipantNumbers("");
 
         if (onExpenseCreated) {
           await onExpenseCreated();
@@ -164,6 +343,10 @@ function SplitExpense({
     }
   };
 
+  // =====================================================
+  // UI
+  // =====================================================
+
   return (
     <section className="split-card">
       <div className="split-heading">
@@ -176,7 +359,7 @@ function SplitExpense({
 
           <p>
             Divide an expense equally between
-            registered group members.
+            the members saved in this group.
           </p>
         </div>
 
@@ -184,6 +367,71 @@ function SplitExpense({
           ₹
         </div>
       </div>
+
+      {/* ===============================================
+          SAVED GROUP MEMBERS
+      =============================================== */}
+
+      <div className="split-members">
+        <div className="split-members-header">
+          <div>
+            <span className="split-eyebrow">
+              GROUP MEMBERS
+            </span>
+
+            <h3>Member numbers</h3>
+          </div>
+
+          {!membersLoading && (
+            <span className="split-member-count">
+              {groupMembers.length} member
+              {groupMembers.length !== 1
+                ? "s"
+                : ""}
+            </span>
+          )}
+        </div>
+
+        {membersLoading ? (
+          <p className="split-members-loading">
+            Loading group members...
+          </p>
+        ) : groupMembers.length === 0 ? (
+          <p className="split-members-loading">
+            No members found.
+          </p>
+        ) : (
+          <div className="split-member-list">
+            {groupMembers.map((member) => (
+              <div
+                className="split-member-row"
+                key={member.id}
+              >
+                <span className="split-member-number">
+                  {member.member_number}
+                </span>
+
+                <div className="split-member-details">
+                  <strong>
+                    {member.name}
+                    {member.is_owner
+                      ? " (You)"
+                      : ""}
+                  </strong>
+
+                  <small>
+                    Member #{member.member_number}
+                  </small>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* ===============================================
+          EXPENSE FORM
+      =============================================== */}
 
       <form
         className="split-form"
@@ -194,10 +442,13 @@ function SplitExpense({
 
           <input
             type="text"
-            placeholder="e.g. Dinner"
+            placeholder="e.g. Travel"
             value={description}
             onChange={(e) => {
-              setDescription(e.target.value);
+              setDescription(
+                e.target.value
+              );
+
               setMessage("");
             }}
             disabled={loading}
@@ -215,10 +466,13 @@ function SplitExpense({
               type="number"
               min="0.01"
               step="0.01"
-              placeholder="800"
+              placeholder="3000"
               value={amount}
               onChange={(e) => {
-                setAmount(e.target.value);
+                setAmount(
+                  e.target.value
+                );
+
                 setMessage("");
               }}
               disabled={loading}
@@ -228,63 +482,105 @@ function SplitExpense({
         </div>
 
         <div className="split-field split-full">
-          <label>Participant User IDs</label>
+          <label>
+            Split Between Member Numbers
+          </label>
 
           <input
             type="text"
-            placeholder={`e.g. ${currentUserId}, 4`}
-            value={participantIds}
+            placeholder={
+              groupMembers.length >= 3
+                ? "e.g. 1, 2, 3"
+                : "e.g. 1, 2"
+            }
+            value={participantNumbers}
             onChange={(e) => {
-              setParticipantIds(e.target.value);
+              setParticipantNumbers(
+                e.target.value
+              );
+
               setMessage("");
             }}
             autoComplete="off"
-            disabled={loading}
+            disabled={
+              loading ||
+              membersLoading
+            }
             required
           />
 
           <small>
-            Your User ID is {currentUserId}. Separate
-            multiple IDs using commas.
+            Enter the member numbers shown
+            above, separated by commas.
+            {ownerMember
+              ? ` Your number is ${ownerMember.member_number}.`
+              : ""}
           </small>
         </div>
+
+        {/* =============================================
+            INVALID MEMBER WARNING
+        ============================================= */}
+
+        {invalidNumbers.length > 0 && (
+          <div className="split-full">
+            <StatusMessage
+              message={`Member number ${invalidNumbers.join(
+                ", "
+              )} is not in this group.`}
+              type="error"
+            />
+          </div>
+        )}
+
+        {/* =============================================
+            PREVIEW
+        ============================================= */}
 
         {showPreview && (
           <div className="split-preview split-full">
             <div className="split-preview-title">
-              <span>Equal split preview</span>
+              <span>
+                Equal split preview
+              </span>
 
               <strong>
-                Total ₹{numericAmount.toFixed(2)}
+                Total ₹
+                {numericAmount.toFixed(2)}
               </strong>
             </div>
 
             <div className="split-preview-list">
-              {participants.map((id) => (
-                <div
-                  className="split-person"
-                  key={id}
-                >
-                  <div>
-                    <span className="split-avatar">
-                      {id === currentUserId
-                        ? "YOU"
-                        : id}
-                    </span>
+              {selectedMembers.map(
+                (member) => (
+                  <div
+                    className="split-person"
+                    key={member.id}
+                  >
+                    <div>
+                      <span className="split-avatar">
+                        {member.is_owner
+                          ? "YOU"
+                          : member.member_number}
+                      </span>
 
-                    <span>
-                      User #{id}
-                      {id === currentUserId
-                        ? " (You)"
-                        : ""}
-                    </span>
+                      <span>
+                        {member.name}
+                        {member.is_owner
+                          ? " (You)"
+                          : ""}
+                      </span>
+                    </div>
+
+                    <strong>
+                      ₹
+                      {previewShare.toFixed(
+                        2
+                      )}
+                    </strong>
                   </div>
-
-                  <strong>
-                    ₹{previewShare.toFixed(2)}
-                  </strong>
-                </div>
-              ))}
+                )
+              )}
             </div>
           </div>
         )}
@@ -292,7 +588,11 @@ function SplitExpense({
         <button
           className="split-button split-full"
           type="submit"
-          disabled={loading}
+          disabled={
+            loading ||
+            membersLoading ||
+            groupMembers.length === 0
+          }
         >
           {loading
             ? "Adding expense..."

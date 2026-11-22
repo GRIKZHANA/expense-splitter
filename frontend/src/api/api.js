@@ -1,6 +1,6 @@
 const API_URL =
   import.meta.env.VITE_API_URL ||
-  "http://127.0.0.1:8000";
+  "http://127.0.0.1:8001";
 
 // =====================================================
 // TOKEN
@@ -41,7 +41,10 @@ export const getJsonAuthHeaders = () => {
 // AUTHENTICATION
 // =====================================================
 
-export const loginUser = async (email, password) => {
+export const loginUser = async (
+  email,
+  password
+) => {
   const formData = new URLSearchParams();
 
   formData.append("username", email);
@@ -51,17 +54,22 @@ export const loginUser = async (email, password) => {
     `${API_URL}/auth/login`,
     {
       method: "POST",
+
       headers: {
         "Content-Type":
           "application/x-www-form-urlencoded",
       },
+
       body: formData,
     }
   );
 
   const data = await response.json();
 
-  return { response, data };
+  return {
+    response,
+    data,
+  };
 };
 
 export const registerUser = async (
@@ -73,9 +81,11 @@ export const registerUser = async (
     `${API_URL}/auth/register`,
     {
       method: "POST",
+
       headers: {
         "Content-Type": "application/json",
       },
+
       body: JSON.stringify({
         name,
         email,
@@ -86,7 +96,10 @@ export const registerUser = async (
 
   const data = await response.json();
 
-  return { response, data };
+  return {
+    response,
+    data,
+  };
 };
 
 export const getCurrentUser = async () => {
@@ -99,7 +112,10 @@ export const getCurrentUser = async () => {
 
   const data = await response.json();
 
-  return { response, data };
+  return {
+    response,
+    data,
+  };
 };
 
 // =====================================================
@@ -116,15 +132,22 @@ export const getGroups = async () => {
 
   const data = await response.json();
 
-  return { response, data };
+  return {
+    response,
+    data,
+  };
 };
 
-export const createGroup = async (name) => {
+export const createGroup = async (
+  name
+) => {
   const response = await fetch(
     `${API_URL}/groups`,
     {
       method: "POST",
+
       headers: getJsonAuthHeaders(),
+
       body: JSON.stringify({
         name,
       }),
@@ -133,34 +156,72 @@ export const createGroup = async (name) => {
 
   const data = await response.json();
 
-  return { response, data };
+  return {
+    response,
+    data,
+  };
 };
+
+// =====================================================
+// ADD GROUP MEMBER BY NAME
+// =====================================================
 
 export const addGroupMember = async (
   groupId,
-  userId
+  memberName
 ) => {
   const response = await fetch(
     `${API_URL}/groups/${groupId}/members`,
     {
       method: "POST",
+
       headers: getJsonAuthHeaders(),
+
       body: JSON.stringify({
-        user_id: Number(userId),
+        name: memberName.trim(),
       }),
     }
   );
 
   const data = await response.json();
 
-  return { response, data };
+  return {
+    response,
+    data,
+  };
+};
+
+// =====================================================
+// GET GROUP MEMBERS
+// =====================================================
+
+export const getGroupMembers = async (
+  groupId
+) => {
+  const response = await fetch(
+    `${API_URL}/groups/${groupId}/members`,
+    {
+      method: "GET",
+
+      headers: getAuthHeaders(),
+    }
+  );
+
+  const data = await response.json();
+
+  return {
+    response,
+    data,
+  };
 };
 
 // =====================================================
 // EXPENSES
 // =====================================================
 
-export const getExpenses = async (groupId) => {
+export const getExpenses = async (
+  groupId
+) => {
   const response = await fetch(
     `${API_URL}/groups/${groupId}/expenses`,
     {
@@ -170,7 +231,10 @@ export const getExpenses = async (groupId) => {
 
   const data = await response.json();
 
-  return { response, data };
+  return {
+    response,
+    data,
+  };
 };
 
 export const createExpense = async (
@@ -181,21 +245,30 @@ export const createExpense = async (
     `${API_URL}/groups/${groupId}/expenses`,
     {
       method: "POST",
+
       headers: getJsonAuthHeaders(),
-      body: JSON.stringify(expenseData),
+
+      body: JSON.stringify(
+        expenseData
+      ),
     }
   );
 
   const data = await response.json();
 
-  return { response, data };
+  return {
+    response,
+    data,
+  };
 };
 
 // =====================================================
 // BALANCES
 // =====================================================
 
-export const getBalances = async (groupId) => {
+export const getBalances = async (
+  groupId
+) => {
   const response = await fetch(
     `${API_URL}/groups/${groupId}/balances`,
     {
@@ -205,5 +278,8 @@ export const getBalances = async (groupId) => {
 
   const data = await response.json();
 
-  return { response, data };
+  return {
+    response,
+    data,
+  };
 };

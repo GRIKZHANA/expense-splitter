@@ -991,7 +991,9 @@ button {
   }
 }
 
-/* ADD MEMBER */
+/* =========================================
+   ADD MEMBER
+========================================= */
 
 .member-form {
   display: flex;
@@ -1007,36 +1009,117 @@ button {
 .member-input-group label {
   display: block;
   margin-bottom: 8px;
+
   color: #3c4354;
+
   font-size: 13px;
   font-weight: 700;
 }
 
-.member-input-group input {
+/* =========================================
+   ADD MEMBER INPUT
+========================================= */
+
+.member-input-group input,
+.member-input-group input[type="text"],
+.member-input-group input[type="number"] {
   width: 100%;
   height: 48px;
   padding: 0 14px;
-
-  color: #202638;
-  background: #ffffff;
 
   border: 1px solid #e1e3e9;
   border-radius: 11px;
 
   outline: none;
-  caret-color: #5548dc;
 
-  font-size: 14px;
+  color-scheme: light !important;
+
+  color: #202638 !important;
+  -webkit-text-fill-color: #202638 !important;
+
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+
+  caret-color: #5548dc !important;
+
+  font-family: inherit !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+
+  opacity: 1 !important;
+
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
 }
+
+/* PLACEHOLDER */
 
 .member-input-group input::placeholder {
-  color: #a0a5b3;
+  color: #a0a5b3 !important;
+  -webkit-text-fill-color: #a0a5b3 !important;
+  opacity: 1 !important;
 }
 
+/* FOCUS */
+
 .member-input-group input:focus {
-  border-color: #7568ed;
-  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.09);
+  color: #202638 !important;
+  -webkit-text-fill-color: #202638 !important;
+
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+
+  border-color: #7568ed !important;
+
+  box-shadow:
+    0 0 0 4px rgba(99, 102, 241, 0.09) !important;
 }
+
+/* ACTIVE */
+
+.member-input-group input:active {
+  color: #202638 !important;
+  -webkit-text-fill-color: #202638 !important;
+
+  background: #ffffff !important;
+}
+
+/* CHROME AUTOFILL */
+
+.member-input-group input:-webkit-autofill,
+.member-input-group input:-webkit-autofill:hover,
+.member-input-group input:-webkit-autofill:focus,
+.member-input-group input:-webkit-autofill:active {
+  color: #202638 !important;
+
+  -webkit-text-fill-color: #202638 !important;
+
+  -webkit-box-shadow:
+    0 0 0 1000px #ffffff inset !important;
+
+  box-shadow:
+    0 0 0 1000px #ffffff inset !important;
+
+  caret-color: #5548dc !important;
+}
+
+/* DISABLED */
+
+.member-input-group input:disabled {
+  color: #6b7280 !important;
+  -webkit-text-fill-color: #6b7280 !important;
+
+  background: #f5f6f8 !important;
+
+  cursor: not-allowed;
+
+  opacity: 0.7 !important;
+}
+
+/* =========================================
+   ADD MEMBER BUTTON
+========================================= */
 
 .member-add-btn {
   height: 48px;
@@ -1045,22 +1128,58 @@ button {
   border: none;
   border-radius: 11px;
 
-  color: white;
-  background: linear-gradient(135deg, #5145df, #7c3aed);
+  color: #ffffff;
+
+  background:
+    linear-gradient(
+      135deg,
+      #5145df,
+      #7c3aed
+    );
 
   cursor: pointer;
+
   font-weight: 800;
+
+  transition:
+    transform 0.2s ease,
+    opacity 0.2s ease,
+    box-shadow 0.2s ease;
+
+  box-shadow:
+    0 8px 20px rgba(81, 69, 223, 0.18);
+}
+
+.member-add-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+
+  box-shadow:
+    0 10px 24px rgba(81, 69, 223, 0.24);
 }
 
 .member-add-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+  transform: none;
 }
+
+/* =========================================
+   ADD MEMBER MOBILE
+========================================= */
 
 @media (max-width: 650px) {
   .member-form {
     flex-direction: column;
     align-items: stretch;
+    gap: 12px;
+  }
+
+  .member-input-group {
+    width: 100%;
+  }
+
+  .member-add-btn {
+    width: 100%;
   }
 }/* =========================================
    CREATE GROUP INPUT - FINAL FIX

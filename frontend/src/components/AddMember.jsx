@@ -2,28 +2,39 @@ import { useState } from "react";
 import { addGroupMember } from "../api/api";
 import StatusMessage from "./StatusMessage";
 
-function AddMember({ groupId }) {
-  const [userId, setUserId] = useState("");
-  const [message, setMessage] = useState("");
-  const [messageType, setMessageType] = useState("info");
-  const [loading, setLoading] = useState(false);
+function AddMember({
+  groupId,
+  onMemberAdded,
+}) {
+  const [memberName, setMemberName] =
+    useState("");
+
+  const [message, setMessage] =
+    useState("");
+
+  const [messageType, setMessageType] =
+    useState("info");
+
+  const [loading, setLoading] =
+    useState(false);
 
   const handleAddMember = async (e) => {
     e.preventDefault();
 
-    if (!userId.trim()) {
-      setMessage("Please enter a User ID.");
+    const cleanName = memberName.trim();
+
+    if (!cleanName) {
+      setMessage(
+        "Please enter the member's name."
+      );
       setMessageType("error");
       return;
     }
 
-    const numericUserId = Number(userId);
-
-    if (
-      !Number.isInteger(numericUserId) ||
-      numericUserId <= 0
-    ) {
-      setMessage("Please enter a valid User ID.");
+    if (cleanName.length > 100) {
+      setMessage(
+        "Member name is too long."
+      );
       setMessageType("error");
       return;
     }
@@ -35,16 +46,22 @@ function AddMember({ groupId }) {
       const { response, data } =
         await addGroupMember(
           groupId,
-          numericUserId
+          cleanName
         );
 
       if (response.ok) {
         setMessage(
-          "Member added successfully!"
+          `${data.name} added as Member ${data.member_number}!`
         );
 
         setMessageType("success");
-        setUserId("");
+        setMemberName("");
+window.dispatchEvent(
+  new Event("splitease-member-added")
+);
+        if (onMemberAdded) {
+          await onMemberAdded();
+        }
       } else {
         setMessage(
           data.detail ||
@@ -82,8 +99,8 @@ function AddMember({ groupId }) {
       </div>
 
       <p className="muted-text">
-        Add another registered SplitEase user
-        using their User ID.
+        Add anyone to this group by name.
+        They do not need a SplitEase account.
       </p>
 
       <form
@@ -91,19 +108,20 @@ function AddMember({ groupId }) {
         onSubmit={handleAddMember}
       >
         <div className="member-input-group">
-          <label htmlFor="member-user-id">
-            User ID
+          <label htmlFor="member-name">
+            Member name
           </label>
 
           <input
-            id="member-user-id"
-            type="number"
-            min="1"
-            step="1"
-            placeholder="Enter User ID, e.g. 4"
-            value={userId}
+            id="member-name"
+            name="memberName"
+            type="text"
+            placeholder="e.g. Ishita Arun"
+            value={memberName}
             onChange={(e) => {
-              setUserId(e.target.value);
+              setMemberName(
+                e.target.value
+              );
 
               if (message) {
                 setMessage("");

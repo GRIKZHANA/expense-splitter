@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+
 import AddMember from "./components/AddMember";
 import SplitExpense from "./components/SplitExpense";
 
@@ -19,22 +20,47 @@ import "./App.css";
 import "./responsive.css";
 
 function App() {
+  // =====================================================
+  // AUTH STATE
+  // =====================================================
+
   const [isLogin, setIsLogin] = useState(true);
-  const [isLoggedIn, setIsLoggedIn] = useState(Boolean(getToken()));
+
+  const [isLoggedIn, setIsLoggedIn] = useState(
+    Boolean(getToken())
+  );
+
   const [user, setUser] = useState(null);
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+
   const [message, setMessage] = useState("");
 
+  // =====================================================
+  // GROUP STATE
+  // =====================================================
+
   const [groups, setGroups] = useState([]);
+
   const [groupName, setGroupName] = useState("");
-  const [groupMessage, setGroupMessage] = useState("");
-  const [selectedGroup, setSelectedGroup] = useState(null);
-  const [showCreateGroup, setShowCreateGroup] = useState(false);
+
+  const [groupMessage, setGroupMessage] =
+    useState("");
+
+  const [selectedGroup, setSelectedGroup] =
+    useState(null);
+
+  const [showCreateGroup, setShowCreateGroup] =
+    useState(false);
+
+  // =====================================================
+  // EXPENSE / BALANCE STATE
+  // =====================================================
 
   const [expenses, setExpenses] = useState([]);
+
   const [balances, setBalances] = useState([]);
 
   // =====================================================
@@ -46,7 +72,8 @@ function App() {
 
     const loadCurrentUser = async () => {
       try {
-        const { response, data } = await getCurrentUser();
+        const { response, data } =
+          await getCurrentUser();
 
         if (response.ok) {
           setUser(data);
@@ -54,7 +81,10 @@ function App() {
           handleLogout();
         }
       } catch (error) {
-        console.error("User loading error:", error);
+        console.error(
+          "User loading error:",
+          error
+        );
       }
     };
 
@@ -77,13 +107,17 @@ function App() {
 
   const loadGroups = async () => {
     try {
-      const { response, data } = await getGroups();
+      const { response, data } =
+        await getGroups();
 
       if (response.ok) {
         setGroups(data);
       }
     } catch (error) {
-      console.error("Group loading error:", error);
+      console.error(
+        "Group loading error:",
+        error
+      );
     }
   };
 
@@ -93,39 +127,59 @@ function App() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     setMessage("");
 
+    // LOGIN
     if (isLogin) {
       try {
-        const { response, data } = await loginUser(email, password);
+        const { response, data } =
+          await loginUser(
+            email,
+            password
+          );
 
         if (response.ok) {
           saveToken(data.access_token);
 
           setIsLoggedIn(true);
+
           setEmail("");
           setPassword("");
           setMessage("");
         } else {
-          setMessage(data.detail || "Invalid email or password.");
+          setMessage(
+            data.detail ||
+              "Invalid email or password."
+          );
         }
       } catch (error) {
-        console.error("Login error:", error);
-        setMessage("Cannot connect to the backend.");
+        console.error(
+          "Login error:",
+          error
+        );
+
+        setMessage(
+          "Cannot connect to the backend."
+        );
       }
 
       return;
     }
 
+    // REGISTER
     try {
-      const { response, data } = await registerUser(
-        name,
-        email,
-        password
-      );
+      const { response, data } =
+        await registerUser(
+          name,
+          email,
+          password
+        );
 
       if (response.ok) {
-        setMessage("Account created successfully!");
+        setMessage(
+          "Account created successfully!"
+        );
 
         setName("");
         setEmail("");
@@ -136,11 +190,20 @@ function App() {
           setMessage("");
         }, 1500);
       } else {
-        setMessage(data.detail || "Registration failed.");
+        setMessage(
+          data.detail ||
+            "Registration failed."
+        );
       }
     } catch (error) {
-      console.error("Registration error:", error);
-      setMessage("Cannot connect to the backend.");
+      console.error(
+        "Registration error:",
+        error
+      );
+
+      setMessage(
+        "Cannot connect to the backend."
+      );
     }
   };
 
@@ -151,16 +214,22 @@ function App() {
   const createGroup = async (e) => {
     e.preventDefault();
 
-    if (!groupName.trim()) return;
+    if (!groupName.trim()) {
+      return;
+    }
 
     try {
-      const { response, data } = await createGroupApi(
-        groupName.trim()
-      );
+      const { response, data } =
+        await createGroupApi(
+          groupName.trim()
+        );
 
       if (response.ok) {
         setGroupName("");
-        setGroupMessage("Group created successfully!");
+
+        setGroupMessage(
+          "Group created successfully!"
+        );
 
         await loadGroups();
 
@@ -169,44 +238,74 @@ function App() {
           setGroupMessage("");
         }, 1200);
       } else {
-        setGroupMessage(data.detail || "Could not create group.");
+        setGroupMessage(
+          data.detail ||
+            "Could not create group."
+        );
       }
     } catch (error) {
-      console.error("Create group error:", error);
-      setGroupMessage("Cannot connect to backend.");
+      console.error(
+        "Create group error:",
+        error
+      );
+
+      setGroupMessage(
+        "Cannot connect to backend."
+      );
     }
   };
 
   // =====================================================
-  // GROUP DATA
+  // LOAD EXPENSES
   // =====================================================
 
-  const loadExpenses = async (groupId) => {
+  const loadExpenses = async (
+    groupId
+  ) => {
     try {
-      const { response, data } = await getExpenses(groupId);
+      const { response, data } =
+        await getExpenses(groupId);
 
       if (response.ok) {
         setExpenses(data);
       }
     } catch (error) {
-      console.error("Expense loading error:", error);
+      console.error(
+        "Expense loading error:",
+        error
+      );
     }
   };
 
-  const loadBalances = async (groupId) => {
+  // =====================================================
+  // LOAD BALANCES
+  // =====================================================
+
+  const loadBalances = async (
+    groupId
+  ) => {
     try {
-      const { response, data } = await getBalances(groupId);
+      const { response, data } =
+        await getBalances(groupId);
 
       if (response.ok) {
         setBalances(data);
       }
     } catch (error) {
-      console.error("Balance loading error:", error);
+      console.error(
+        "Balance loading error:",
+        error
+      );
     }
   };
 
+  // =====================================================
+  // OPEN GROUP
+  // =====================================================
+
   const openGroup = async (group) => {
     setSelectedGroup(group);
+
     setExpenses([]);
     setBalances([]);
 
@@ -215,6 +314,10 @@ function App() {
       loadBalances(group.id),
     ]);
   };
+
+  // =====================================================
+  // REFRESH GROUP
+  // =====================================================
 
   const refreshGroupData = async () => {
     if (!selectedGroup) return;
@@ -225,8 +328,32 @@ function App() {
     ]);
   };
 
+  // =====================================================
+  // MEMBER ADDED
+  // =====================================================
+
+  const handleMemberAdded = async () => {
+    /*
+      Tell SplitExpense that the saved
+      group-member list has changed.
+    */
+
+    window.dispatchEvent(
+      new Event(
+        "splitease-member-added"
+      )
+    );
+
+    await refreshGroupData();
+  };
+
+  // =====================================================
+  // BACK TO GROUPS
+  // =====================================================
+
   const backToGroups = () => {
     setSelectedGroup(null);
+
     setExpenses([]);
     setBalances([]);
   };
@@ -240,15 +367,20 @@ function App() {
 
     setIsLoggedIn(false);
     setUser(null);
+
     setGroups([]);
+
     setSelectedGroup(null);
+
     setExpenses([]);
     setBalances([]);
+
     setShowCreateGroup(false);
 
     setName("");
     setEmail("");
     setPassword("");
+
     setMessage("");
     setGroupMessage("");
   };
@@ -257,50 +389,87 @@ function App() {
   // CALCULATED VALUES
   // =====================================================
 
-  const totalExpenses = expenses.reduce(
-    (total, expense) => total + expense.amount_cents,
-    0
-  );
+  const totalExpenses =
+    expenses.reduce(
+      (total, expense) =>
+        total +
+        expense.amount_cents,
+      0
+    );
 
   const userInitials = user?.name
     ? user.name
         .split(" ")
-        .map((part) => part[0])
+        .map(
+          (part) =>
+            part[0]
+        )
         .join("")
         .slice(0, 2)
         .toUpperCase()
     : "U";
 
+  /*
+    The group creator is automatically
+    Member #1 in the new guest-member system.
+  */
+
   const currentBalance =
     balances.find(
-      (balance) => balance.user_id === user?.id
+      (balance) =>
+        Number(
+          balance.member_number
+        ) === 1
     )?.net_cents || 0;
 
   // =====================================================
-  // GROUP DETAILS
+  // GROUP DETAILS PAGE
   // =====================================================
 
-  if (isLoggedIn && selectedGroup) {
+  if (
+    isLoggedIn &&
+    selectedGroup
+  ) {
     return (
       <div className="app-background">
+        {/* =============================================
+            NAVBAR
+        ============================================= */}
+
         <nav className="app-navbar">
           <div className="nav-inner">
             <div className="nav-brand">
-              <div className="nav-logo">₹</div>
-              <span>SplitEase</span>
+              <div className="nav-logo">
+                ₹
+              </div>
+
+              <span>
+                SplitEase
+              </span>
             </div>
 
             <div className="nav-user">
-              <div className="user-avatar">{userInitials}</div>
+              <div className="user-avatar">
+                {userInitials}
+              </div>
 
               <div className="user-details">
-                <strong>{user?.name || "User"}</strong>
-                <span>{user?.email || ""}</span>
+                <strong>
+                  {user?.name ||
+                    "User"}
+                </strong>
+
+                <span>
+                  {user?.email ||
+                    ""}
+                </span>
               </div>
 
               <button
                 className="nav-logout"
-                onClick={handleLogout}
+                onClick={
+                  handleLogout
+                }
               >
                 Logout
               </button>
@@ -308,13 +477,21 @@ function App() {
           </div>
         </nav>
 
+        {/* =============================================
+            GROUP CONTENT
+        ============================================= */}
+
         <main className="app-content">
           <button
             className="modern-back-btn"
-            onClick={backToGroups}
+            onClick={
+              backToGroups
+            }
           >
             ← Back to groups
           </button>
+
+          {/* GROUP HEADER */}
 
           <section className="group-page-header">
             <div>
@@ -322,63 +499,127 @@ function App() {
                 GROUP OVERVIEW
               </span>
 
-              <h1>{selectedGroup.name}</h1>
+              <h1>
+                {
+                  selectedGroup.name
+                }
+              </h1>
 
               <p>
-                Manage members, split expenses and review the
-                group balance.
+                Manage members,
+                split expenses and
+                review the group
+                balance.
               </p>
             </div>
 
             <div className="group-number">
-              Group #{selectedGroup.id}
+              Group #
+              {selectedGroup.id}
             </div>
           </section>
+
+          {/* =============================================
+              GROUP STATS
+          ============================================= */}
 
           <section className="group-stats">
             <div className="stat-card">
-              <div className="stat-icon purple">₹</div>
+              <div className="stat-icon purple">
+                ₹
+              </div>
 
               <div>
-                <span>Total Expenses</span>
+                <span>
+                  Total Expenses
+                </span>
+
                 <strong>
-                  ₹{(totalExpenses / 100).toFixed(2)}
+                  ₹
+                  {(
+                    totalExpenses /
+                    100
+                  ).toFixed(2)}
                 </strong>
               </div>
             </div>
 
             <div className="stat-card">
-              <div className="stat-icon blue">▤</div>
+              <div className="stat-icon blue">
+                ▤
+              </div>
 
               <div>
-                <span>Transactions</span>
-                <strong>{expenses.length}</strong>
+                <span>
+                  Transactions
+                </span>
+
+                <strong>
+                  {
+                    expenses.length
+                  }
+                </strong>
               </div>
             </div>
 
             <div className="stat-card">
-              <div className="stat-icon green">◎</div>
+              <div className="stat-icon green">
+                ◎
+              </div>
 
               <div>
-                <span>Your Balance</span>
+                <span>
+                  Your Balance
+                </span>
 
                 <strong>
-                  {currentBalance > 0 ? "+" : ""}
-                  ₹{(currentBalance / 100).toFixed(2)}
+                  {currentBalance >
+                  0
+                    ? "+"
+                    : ""}
+
+                  ₹
+                  {(
+                    currentBalance /
+                    100
+                  ).toFixed(2)}
                 </strong>
               </div>
             </div>
           </section>
 
-          <AddMember groupId={selectedGroup.id} />
+          {/* =============================================
+              ADD MEMBER
+          ============================================= */}
+
+          <AddMember
+            groupId={
+              selectedGroup.id
+            }
+            onMemberAdded={
+              handleMemberAdded
+            }
+          />
+
+          {/* =============================================
+              SPLIT EXPENSE
+          ============================================= */}
 
           {user && user.id && (
             <SplitExpense
-              groupId={selectedGroup.id}
+              groupId={
+                selectedGroup.id
+              }
               currentUser={user}
-              onExpenseCreated={refreshGroupData}
+              onExpenseCreated={
+                refreshGroupData
+              }
             />
           )}
+
+          {/* =============================================
+              RECENT EXPENSES
+          ============================================= */}
 
           <section className="modern-section">
             <div className="section-heading">
@@ -386,48 +627,90 @@ function App() {
                 <span className="section-eyebrow">
                   ACTIVITY
                 </span>
-                <h2>Recent expenses</h2>
+
+                <h2>
+                  Recent expenses
+                </h2>
               </div>
 
               <span className="transaction-count">
-                {expenses.length} transaction
-                {expenses.length !== 1 ? "s" : ""}
+                {
+                  expenses.length
+                }{" "}
+                transaction
+                {expenses.length !==
+                1
+                  ? "s"
+                  : ""}
               </span>
             </div>
 
-            {expenses.length === 0 ? (
+            {expenses.length ===
+            0 ? (
               <div className="modern-empty">
-                <div>₹</div>
-                <h3>No expenses yet</h3>
+                <div>
+                  ₹
+                </div>
+
+                <h3>
+                  No expenses yet
+                </h3>
+
                 <p>
-                  Add your first shared expense to this group.
+                  Add your first
+                  shared expense to
+                  this group.
                 </p>
               </div>
             ) : (
               <div className="modern-expense-list">
-                {expenses.map((expense) => (
-                  <div
-                    className="modern-expense-row"
-                    key={expense.id}
-                  >
-                    <div className="expense-symbol">₹</div>
+                {expenses.map(
+                  (expense) => (
+                    <div
+                      className="modern-expense-row"
+                      key={
+                        expense.id
+                      }
+                    >
+                      <div className="expense-symbol">
+                        ₹
+                      </div>
 
-                    <div className="expense-info">
-                      <strong>{expense.description}</strong>
-                      <span>
-                        Paid by User #{expense.paid_by}
-                      </span>
+                      <div className="expense-info">
+                        <strong>
+                          {
+                            expense.description
+                          }
+                        </strong>
+
+                        <span>
+                          Paid by
+                          Member #
+                          {
+                            expense.paid_by_member_id
+                          }
+                        </span>
+                      </div>
+
+                      <strong className="modern-expense-amount">
+                        ₹
+                        {(
+                          expense.amount_cents /
+                          100
+                        ).toFixed(
+                          2
+                        )}
+                      </strong>
                     </div>
-
-                    <strong className="modern-expense-amount">
-                      ₹
-                      {(expense.amount_cents / 100).toFixed(2)}
-                    </strong>
-                  </div>
-                ))}
+                  )
+                )}
               </div>
             )}
           </section>
+
+          {/* =============================================
+              GROUP BALANCES
+          ============================================= */}
 
           <section className="modern-section">
             <div className="section-heading">
@@ -435,54 +718,104 @@ function App() {
                 <span className="section-eyebrow">
                   SETTLEMENT
                 </span>
-                <h2>Group balances</h2>
+
+                <h2>
+                  Group balances
+                </h2>
               </div>
             </div>
 
-            {balances.length === 0 ? (
+            {balances.length ===
+            0 ? (
               <p className="muted-text">
-                No balance information available.
+                No balance
+                information
+                available.
               </p>
             ) : (
               <div className="modern-balance-list">
-                {balances.map((balance) => {
-                  const balanceAmount =
-                    balance.net_cents / 100;
+                {balances.map(
+                  (balance) => {
+                    const balanceAmount =
+                      balance.net_cents /
+                      100;
 
-                  return (
-                    <div
-                      className="modern-balance-row"
-                      key={balance.user_id}
-                    >
-                      <div className="balance-person">
-                        <div className="small-avatar">
-                          {balance.user_id === user?.id
-                            ? userInitials
-                            : "U"}
+                    const isOwner =
+                      Number(
+                        balance.member_number
+                      ) === 1;
+
+                    const memberInitials =
+                      balance.name
+                        ? balance.name
+                            .split(
+                              " "
+                            )
+                            .map(
+                              (
+                                part
+                              ) =>
+                                part[0]
+                            )
+                            .join(
+                              ""
+                            )
+                            .slice(
+                              0,
+                              2
+                            )
+                            .toUpperCase()
+                        : "M";
+
+                    return (
+                      <div
+                        className="modern-balance-row"
+                        key={
+                          balance.member_id
+                        }
+                      >
+                        <div className="balance-person">
+                          <div className="small-avatar">
+                            {
+                              memberInitials
+                            }
+                          </div>
+
+                          <div>
+                            <strong>
+                              {
+                                balance.name
+                              }
+                            </strong>
+
+                            <span>
+                              Member #
+                              {
+                                balance.member_number
+                              }
+
+                              {isOwner
+                                ? " • You"
+                                : ""}
+                            </span>
+                          </div>
                         </div>
 
-                        <div>
-                          <strong>
-                            {balance.user_id === user?.id
-                              ? user?.name
-                              : `User #${balance.user_id}`}
-                          </strong>
+                        <strong>
+                          {balanceAmount >
+                          0
+                            ? "+"
+                            : ""}
 
-                          <span>
-                            {balance.user_id === user?.id
-                              ? "You"
-                              : `Member #${balance.user_id}`}
-                          </span>
-                        </div>
+                          ₹
+                          {balanceAmount.toFixed(
+                            2
+                          )}
+                        </strong>
                       </div>
-
-                      <strong>
-                        {balanceAmount > 0 ? "+" : ""}
-                        ₹{balanceAmount.toFixed(2)}
-                      </strong>
-                    </div>
-                  );
-                })}
+                    );
+                  }
+                )}
               </div>
             )}
           </section>
@@ -498,11 +831,18 @@ function App() {
   if (isLoggedIn) {
     return (
       <div className="app-background">
+        {/* NAVBAR */}
+
         <nav className="app-navbar">
           <div className="nav-inner">
             <div className="nav-brand">
-              <div className="nav-logo">₹</div>
-              <span>SplitEase</span>
+              <div className="nav-logo">
+                ₹
+              </div>
+
+              <span>
+                SplitEase
+              </span>
             </div>
 
             <div className="nav-links">
@@ -510,26 +850,41 @@ function App() {
                 Dashboard
               </button>
 
-              <button>Groups</button>
+              <button>
+                Groups
+              </button>
             </div>
 
             <div className="nav-user">
-              <div className="user-avatar">{userInitials}</div>
+              <div className="user-avatar">
+                {userInitials}
+              </div>
 
               <div className="user-details">
-                <strong>{user?.name || "User"}</strong>
-                <span>{user?.email || ""}</span>
+                <strong>
+                  {user?.name ||
+                    "User"}
+                </strong>
+
+                <span>
+                  {user?.email ||
+                    ""}
+                </span>
               </div>
 
               <button
                 className="nav-logout"
-                onClick={handleLogout}
+                onClick={
+                  handleLogout
+                }
               >
                 Logout
               </button>
             </div>
           </div>
         </nav>
+
+        {/* DASHBOARD */}
 
         <main className="app-content">
           <section className="welcome-section">
@@ -540,21 +895,31 @@ function App() {
 
               <h1>
                 Welcome back,{" "}
-                <span>{user?.name || "there"}!</span>{" "}
+                <span>
+                  {user?.name ||
+                    "there"}
+                  !
+                </span>{" "}
                 👋
               </h1>
 
               <p>
-                Here's an overview of your shared expenses
-                and groups.
+                Here's an overview
+                of your shared
+                expenses and groups.
               </p>
             </div>
 
             <button
               className="primary-action create-group-top"
               onClick={() => {
-                setShowCreateGroup(!showCreateGroup);
-                setGroupMessage("");
+                setShowCreateGroup(
+                  !showCreateGroup
+                );
+
+                setGroupMessage(
+                  ""
+                );
               }}
             >
               {showCreateGroup
@@ -563,37 +928,77 @@ function App() {
             </button>
           </section>
 
+          {/* DASHBOARD STATS */}
+
           <section className="dashboard-stats">
             <div className="dashboard-stat-card">
-              <div className="stat-icon purple">◉</div>
+              <div className="stat-icon purple">
+                ◉
+              </div>
 
               <div>
-                <span>My Groups</span>
-                <strong>{groups.length}</strong>
-                <small>Active expense groups</small>
+                <span>
+                  My Groups
+                </span>
+
+                <strong>
+                  {
+                    groups.length
+                  }
+                </strong>
+
+                <small>
+                  Active expense
+                  groups
+                </small>
               </div>
             </div>
 
             <div className="dashboard-stat-card">
-              <div className="stat-icon blue">₹</div>
+              <div className="stat-icon blue">
+                ₹
+              </div>
 
               <div>
-                <span>Expense Tracking</span>
-                <strong>Active</strong>
-                <small>Connected to FastAPI</small>
+                <span>
+                  Expense Tracking
+                </span>
+
+                <strong>
+                  Active
+                </strong>
+
+                <small>
+                  Connected to
+                  FastAPI
+                </small>
               </div>
             </div>
 
             <div className="dashboard-stat-card">
-              <div className="stat-icon green">✓</div>
+              <div className="stat-icon green">
+                ✓
+              </div>
 
               <div>
-                <span>Account</span>
-                <strong>Secure</strong>
-                <small>JWT authenticated</small>
+                <span>
+                  Account
+                </span>
+
+                <strong>
+                  Secure
+                </strong>
+
+                <small>
+                  JWT authenticated
+                </small>
               </div>
             </div>
           </section>
+
+          {/* =============================================
+              CREATE GROUP
+          ============================================= */}
 
           {showCreateGroup && (
             <section className="create-group-panel">
@@ -602,47 +1007,63 @@ function App() {
                   CREATE GROUP
                 </span>
 
-                <h2>Start a new expense group</h2>
+                <h2>
+                  Start a new
+                  expense group
+                </h2>
 
                 <p>
-                  Create a group for a trip, flat, event or
-                  anything you're sharing with friends.
+                  Create a group for
+                  a trip, flat,
+                  event or anything
+                  you're sharing
+                  with friends.
                 </p>
               </div>
 
-             <form
-  className="modern-group-form"
-  onSubmit={createGroup}
->
-  <input
-    type="text"
-    name="groupName"
-    placeholder="e.g. Manali Trip"
-    value={groupName}
-    onChange={(e) => setGroupName(e.target.value)}
-    autoComplete="off"
-    style={{
-      color: "#202638",
-      WebkitTextFillColor: "#202638",
-      backgroundColor: "#ffffff",
-      caretColor: "#5145df",
-      opacity: 1,
-    }}
-    required
-  />
+              <form
+                className="modern-group-form"
+                onSubmit={
+                  createGroup
+                }
+              >
+                <input
+                  type="text"
+                  name="groupName"
+                  placeholder="e.g. Manali Trip"
+                  value={
+                    groupName
+                  }
+                  onChange={(
+                    e
+                  ) => {
+                    setGroupName(
+                      e.target
+                        .value
+                    );
+                  }}
+                  autoComplete="off"
+                  required
+                />
 
-  <button type="submit">
-    Create Group →
-  </button>
-</form>
+                <button type="submit">
+                  Create Group →
+                </button>
+              </form>
 
               {groupMessage && (
                 <div className="success-message">
-                  {groupMessage}
+                  {
+                    groupMessage
+                  }
                 </div>
               )}
             </section>
           )}
+
+          {/* =============================================
+              GROUP LIST
+          ============================================= */}
 
           <section className="groups-section">
             <div className="section-heading">
@@ -651,58 +1072,104 @@ function App() {
                   YOUR GROUPS
                 </span>
 
-                <h2>Shared expenses</h2>
+                <h2>
+                  Shared expenses
+                </h2>
               </div>
 
               <span className="group-count">
-                {groups.length} group
-                {groups.length !== 1 ? "s" : ""}
+                {
+                  groups.length
+                }{" "}
+                group
+                {groups.length !==
+                1
+                  ? "s"
+                  : ""}
               </span>
             </div>
 
-            {groups.length === 0 ? (
+            {groups.length ===
+            0 ? (
               <div className="modern-empty">
-                <div>₹</div>
-                <h3>No groups yet</h3>
+                <div>
+                  ₹
+                </div>
+
+                <h3>
+                  No groups yet
+                </h3>
 
                 <p>
-                  Create your first group to start splitting
+                  Create your first
+                  group to start
+                  splitting
                   expenses.
                 </p>
               </div>
             ) : (
               <div className="modern-groups-grid">
-                {groups.map((group, index) => (
-                  <button
-                    type="button"
-                    className="modern-group-card"
-                    key={group.id}
-                    onClick={() => openGroup(group)}
-                  >
-                    <div
-                      className={`group-card-icon ${
-                        index % 3 === 0
-                          ? "purple"
-                          : index % 3 === 1
-                          ? "blue"
-                          : "green"
-                      }`}
+                {groups.map(
+                  (
+                    group,
+                    index
+                  ) => (
+                    <button
+                      type="button"
+                      className="modern-group-card"
+                      key={
+                        group.id
+                      }
+                      onClick={() =>
+                        openGroup(
+                          group
+                        )
+                      }
                     >
-                      ₹
-                    </div>
+                      <div
+                        className={`group-card-icon ${
+                          index %
+                            3 ===
+                          0
+                            ? "purple"
+                            : index %
+                                  3 ===
+                                1
+                              ? "blue"
+                              : "green"
+                        }`}
+                      >
+                        ₹
+                      </div>
 
-                    <div className="group-card-content">
-                      <span>GROUP #{group.id}</span>
-                      <h3>{group.name}</h3>
+                      <div className="group-card-content">
+                        <span>
+                          GROUP #
+                          {
+                            group.id
+                          }
+                        </span>
 
-                      <p>
-                        Track and manage shared expenses.
-                      </p>
-                    </div>
+                        <h3>
+                          {
+                            group.name
+                          }
+                        </h3>
 
-                    <div className="group-arrow">→</div>
-                  </button>
-                ))}
+                        <p>
+                          Track and
+                          manage
+                          shared
+                          expenses.
+                        </p>
+                      </div>
+
+                      <div className="group-arrow">
+                        →
+                      </div>
+                    </button>
+                  )
+                )}
               </div>
             )}
           </section>
@@ -712,16 +1179,25 @@ function App() {
   }
 
   // =====================================================
-  // LOGIN / REGISTER
+  // LOGIN / REGISTER PAGE
   // =====================================================
 
   return (
     <div className="auth-page">
       <div className="auth-shell">
+        {/* =============================================
+            LEFT HERO
+        ============================================= */}
+
         <section className="auth-hero">
           <div className="brand">
-            <div className="brand-icon">₹</div>
-            <span>SplitEase</span>
+            <div className="brand-icon">
+              ₹
+            </div>
+
+            <span>
+              SplitEase
+            </span>
           </div>
 
           <div className="hero-content">
@@ -732,53 +1208,76 @@ function App() {
             <h1>
               Split smarter.
               <br />
-              <span>Live lighter.</span>
+
+              <span>
+                Live lighter.
+              </span>
             </h1>
 
             <p>
-              Keep trips, dinners and shared bills simple.
-              Track expenses, organize groups and know
-              exactly where your money went.
+              Keep trips, dinners
+              and shared bills
+              simple. Track
+              expenses, organize
+              groups and know
+              exactly where your
+              money went.
             </p>
 
             <div className="feature-list">
               <div className="feature-item">
-                <span className="feature-check">✓</span>
+                <span className="feature-check">
+                  ✓
+                </span>
 
                 <div>
                   <strong>
-                    Simple group expenses
+                    Simple group
+                    expenses
                   </strong>
 
                   <small>
-                    Create groups for trips, friends and
+                    Create groups
+                    for trips,
+                    friends and
                     roommates.
                   </small>
                 </div>
               </div>
 
               <div className="feature-item">
-                <span className="feature-check">✓</span>
+                <span className="feature-check">
+                  ✓
+                </span>
 
                 <div>
                   <strong>
-                    Clear expense history
+                    Clear expense
+                    history
                   </strong>
 
                   <small>
-                    Keep every shared payment organized.
+                    Keep every
+                    shared payment
+                    organized.
                   </small>
                 </div>
               </div>
 
               <div className="feature-item">
-                <span className="feature-check">✓</span>
+                <span className="feature-check">
+                  ✓
+                </span>
 
                 <div>
-                  <strong>Balance tracking</strong>
+                  <strong>
+                    Balance tracking
+                  </strong>
 
                   <small>
-                    See your group balances without messy
+                    See your group
+                    balances without
+                    messy
                     calculations.
                   </small>
                 </div>
@@ -787,14 +1286,24 @@ function App() {
           </div>
 
           <p className="hero-footer">
-            Built for easier shared spending.
+            Built for easier shared
+            spending.
           </p>
         </section>
 
+        {/* =============================================
+            AUTH PANEL
+        ============================================= */}
+
         <section className="auth-panel">
           <div className="mobile-brand">
-            <div className="brand-icon">₹</div>
-            <span>SplitEase</span>
+            <div className="brand-icon">
+              ₹
+            </div>
+
+            <span>
+              SplitEase
+            </span>
           </div>
 
           <div className="auth-panel-content">
@@ -816,10 +1325,16 @@ function App() {
                 : "Start splitting expenses without the awkward maths."}
             </p>
 
+            {/* AUTH TABS */}
+
             <div className="auth-tabs">
               <button
                 type="button"
-                className={isLogin ? "active" : ""}
+                className={
+                  isLogin
+                    ? "active"
+                    : ""
+                }
                 onClick={() => {
                   setIsLogin(true);
                   setMessage("");
@@ -830,7 +1345,11 @@ function App() {
 
               <button
                 type="button"
-                className={!isLogin ? "active" : ""}
+                className={
+                  !isLogin
+                    ? "active"
+                    : ""
+                }
                 onClick={() => {
                   setIsLogin(false);
                   setMessage("");
@@ -840,23 +1359,38 @@ function App() {
               </button>
             </div>
 
+            {/* AUTH FORM */}
+
             <form
               className="modern-auth-form"
-              onSubmit={handleSubmit}
+              onSubmit={
+                handleSubmit
+              }
             >
               {!isLogin && (
                 <div className="modern-form-group">
-                  <label>Full name</label>
+                  <label>
+                    Full name
+                  </label>
 
                   <div className="input-wrapper">
-                    <span className="input-icon">👤</span>
+                    <span className="input-icon">
+                      👤
+                    </span>
 
                     <input
                       type="text"
                       placeholder="Enter your name"
-                      value={name}
-                      onChange={(e) =>
-                        setName(e.target.value)
+                      value={
+                        name
+                      }
+                      onChange={(
+                        e
+                      ) =>
+                        setName(
+                          e.target
+                            .value
+                        )
                       }
                       required
                     />
@@ -865,17 +1399,28 @@ function App() {
               )}
 
               <div className="modern-form-group">
-                <label>Email address</label>
+                <label>
+                  Email address
+                </label>
 
                 <div className="input-wrapper">
-                  <span className="input-icon">✉</span>
+                  <span className="input-icon">
+                    ✉
+                  </span>
 
                   <input
                     type="email"
                     placeholder="you@example.com"
-                    value={email}
-                    onChange={(e) =>
-                      setEmail(e.target.value)
+                    value={
+                      email
+                    }
+                    onChange={(
+                      e
+                    ) =>
+                      setEmail(
+                        e.target
+                          .value
+                      )
                     }
                     required
                   />
@@ -883,17 +1428,28 @@ function App() {
               </div>
 
               <div className="modern-form-group">
-                <label>Password</label>
+                <label>
+                  Password
+                </label>
 
                 <div className="input-wrapper">
-                  <span className="input-icon">⌑</span>
+                  <span className="input-icon">
+                    ⌑
+                  </span>
 
                   <input
                     type="password"
                     placeholder="Enter your password"
-                    value={password}
-                    onChange={(e) =>
-                      setPassword(e.target.value)
+                    value={
+                      password
+                    }
+                    onChange={(
+                      e
+                    ) =>
+                      setPassword(
+                        e.target
+                          .value
+                      )
                     }
                     required
                   />
@@ -908,7 +1464,9 @@ function App() {
                   ? "Sign In"
                   : "Create Account"}
 
-                <span>→</span>
+                <span>
+                  →
+                </span>
               </button>
             </form>
 
@@ -926,7 +1484,10 @@ function App() {
               <button
                 type="button"
                 onClick={() => {
-                  setIsLogin(!isLogin);
+                  setIsLogin(
+                    !isLogin
+                  );
+
                   setMessage("");
                 }}
               >
